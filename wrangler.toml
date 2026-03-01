@@ -1,0 +1,16 @@
+name = "titan-backend-gateway"
+main = "src/index.js"
+compatibility_date = "2024-03-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "titan-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "titan-assets"
+
+[vars]
+CLERK_SECRET_KEY = "YOUR_CLERK_SECRET_KEY"
+PUBLIC_URL = "https://your-r2-public-domain.com"
