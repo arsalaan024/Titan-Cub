@@ -27,10 +27,11 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
   const { clubId } = useParams();
   const club = clubs.find(c => c.id === clubId);
 
-  const [activeTab, setActiveTab] = useState<'activities' | 'chat' | 'members'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'chat' | 'members' | 'requests'>('activities');
   const [chatMessage, setChatMessage] = useState('');
   const [clubChats, setClubChats] = useState<ChatMessage[]>([]);
   const [clubMembers, setClubMembers] = useState<any[]>([]);
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [newAnn, setNewAnn] = useState('');
   const [isEditingClub, setIsEditingClub] = useState(false);
   const [showJoinRequests, setShowJoinRequests] = useState(false);
@@ -67,19 +68,36 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
     }
   }, [clubChats, activeTab]);
 
+  const isClubAdmin = user?.role === UserRoles.CLUB_ADMIN || [UserRoles.ADMIN, UserRoles.SUPER_ADMIN].includes(user?.role as any);
+  const isMember = user?.clubMembership?.includes(club?.id || '') || isClubAdmin;
+  const isPending = user?.pendingClubRequests?.includes(club?.id || '');
+
   useEffect(() => {
     if (clubId) {
       db.getClubMembers(clubId).then(setClubMembers);
+      if (isClubAdmin) {
+        db.getClubJoinRequests(clubId).then(setJoinRequests);
+      }
     }
-  }, [clubId, activeTab]);
+  }, [clubId, activeTab, isClubAdmin]);
 
   if (!club) return <Navigate to="/clubs" />;
 
   const clubActivities = activities.filter(a => a.clubId === clubId);
   const clubAnnouncements = announcements.filter(a => a.clubId === clubId);
 
-  const isClubAdmin = user?.role === UserRoles.CLUB_ADMIN || [UserRoles.ADMIN, UserRoles.SUPER_ADMIN].includes(user?.role as any);
-  const isMember = user?.clubMembership?.includes(club.id) || isClubAdmin;
+  const handleRequestJoin = async () => {
+    if (!user || isPending) return;
+    await db.requestJoinClub(club.id, user.id);
+    onUpdate(); // Triggers a re-render from App.tsx which re-fetches the user profile
+  };
+
+  const handleProcessRequest = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+    await db.handleJoinRequest(requestId, status);
+    // Refresh lists
+    db.getClubJoinRequests(club.id).then(setJoinRequests);
+    db.getClubMembers(club.id).then(setClubMembers);
+  };
 
   const handleSendChat = () => {
     if (!chatMessage.trim() || !user) return;
@@ -196,6 +214,17 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
               <p className="text-xl font-bold opacity-70 tracking-tight line-clamp-1">{club.tagline}</p>
             </div>
           </div>
+          {user && !isMember && (
+            <button
+              onClick={handleRequestJoin}
+              disabled={isPending}
+              className="backdrop-blur-xl px-8 py-4 rounded-2xl flex items-center gap-3 text-xs font-black uppercase tracking-widest border border-white/20 text-white hover:bg-white hover:text-black transition-all disabled:opacity-100 disabled:cursor-not-allowed group shadow-2xl shrink-0"
+              style={isPending ? { backgroundColor: themeColor, borderColor: 'transparent' } : {}}
+            >
+              <i className={`fa-solid ${isPending ? 'fa-clock opacity-50' : 'fa-user-plus group-hover:scale-110'} transition-transform text-lg`}></i>
+              <span>{isPending ? 'Request Sent' : 'Request to Join'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -203,7 +232,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           <div className="lg:col-span-8">
             <div className="flex gap-4 mb-12 border-b-2 border-gray-100 overflow-x-auto scroll-hide">
-              {['activities', 'chat', 'members'].map(tab => (
+              {(isMember ? ['activities', 'chat', 'members'] : ['activities']).concat(isClubAdmin ? ['requests'] : []).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
@@ -211,6 +240,9 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                   style={activeTab === tab ? { backgroundColor: themeColor } : {}}
                 >
                   {tab}
+                  {tab === 'requests' && joinRequests.length > 0 && (
+                    <span className="ml-2 bg-white text-black px-2 py-0.5 rounded-full text-[8px]">{joinRequests.length}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -317,6 +349,35 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                       <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendChat()} placeholder="Draft message..." className="flex-grow bg-transparent border-none px-6 py-4 font-bold outline-none text-sm" />
                       <button onClick={handleSendChat} className="w-14 h-14 rounded-2xl text-white flex items-center justify-center hover:opacity-90 transition-all" style={{ backgroundColor: themeColor }}><i className="fa-solid fa-paper-plane"></i></button>
                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'requests' && isClubAdmin && (
+                  <div className="bg-gray-50 rounded-[3rem] p-12 border border-gray-100 space-y-8 animate-fade-in">
+                    <h3 className="text-3xl font-black uppercase tracking-tighter text-gray-900">Pending Requests</h3>
+                    {joinRequests.length === 0 ? (
+                      <p className="text-gray-400 font-medium">No pending requests at the moment.</p>
+                    ) : (
+                      <div className="grid gap-6">
+                        {joinRequests.map(req => (
+                          <div key={req.requestId} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0">
+                                {req.photoUrl ? <img src={formatMediaLink(req.photoUrl)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-gray-400">{req.displayName?.[0]}</div>}
+                              </div>
+                              <div>
+                                <h4 className="font-black text-gray-900 uppercase tracking-tight">{req.displayName}</h4>
+                                <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{req.email}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-3">
+                              <button onClick={() => handleProcessRequest(req.requestId, 'REJECTED')} className="px-6 py-3 rounded-xl bg-gray-100 text-gray-400 font-black uppercase text-[10px] tracking-widest hover:bg-gray-200">Reject</button>
+                              <button onClick={() => handleProcessRequest(req.requestId, 'APPROVED')} className="px-6 py-3 rounded-xl bg-green-500 text-white font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-green-600">Approve</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </>

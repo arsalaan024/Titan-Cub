@@ -306,10 +306,24 @@ export const db = {
     // Fetch game stats independently
     const gameStats = await db.getUserGameStats(clerkId);
 
+    // Fetch pending requests
+    const { rows: reqRows } = await turso.execute({
+      sql: 'SELECT club_id FROM club_join_requests WHERE user_id = ? AND status = ?',
+      args: [clerkId, 'PENDING']
+    });
+    const pendingRequests = reqRows.map(r => r.club_id as string);
+
+    // Fetch club memberships
+    const { rows: memRows } = await turso.execute({
+      sql: 'SELECT club_id FROM club_members WHERE user_id = ?',
+      args: [clerkId]
+    });
+    const clubMembership = memRows.map(r => r.club_id as string);
+
     if (!rows[0]) {
       // If profile doesn't exist but game stats do, return a partial profile
       if (gameStats) {
-        return { clerkId, displayName: '', email: '', photoUrl: '', bio: '', role: 'STUDENT' as UserRole, gameStats };
+        return { clerkId, displayName: '', email: '', photoUrl: '', bio: '', role: 'STUDENT' as UserRole, gameStats, pendingClubRequests: pendingRequests, clubMembership };
       }
       return null;
     }
@@ -322,7 +336,9 @@ export const db = {
       photoUrl: r.photo_url,
       bio: r.bio || '',
       role: r.role,
-      gameStats: gameStats || undefined
+      gameStats: gameStats || undefined,
+      pendingClubRequests: pendingRequests,
+      clubMembership
     };
   },
   saveUserProfile: async (profile: { clerkId: string; displayName: string; email: string; photoUrl: string; bio: string; role: string }) => {
@@ -363,9 +379,45 @@ export const db = {
       displayName: r.display_name,
       email: r.email,
       photoUrl: r.photo_url,
-      bio: r.bio || '',
       role: r.role
     }));
+  },
+
+  // --- Join Requests ---
+  requestJoinClub: async (clubId: string, userId: string) => {
+    await turso.execute({
+      sql: 'INSERT OR IGNORE INTO club_join_requests (id, club_id, user_id) VALUES (?, ?, ?)',
+      args: [`req_${Date.now()}`, clubId, userId]
+    });
+  },
+  getClubJoinRequests: async (clubId: string) => {
+    const { rows } = await turso.execute({
+      sql: `SELECT up.*, cjr.id as requestId FROM user_profiles up
+            JOIN club_join_requests cjr ON up.clerk_id = cjr.user_id
+            WHERE cjr.club_id = ? AND cjr.status = 'PENDING'`,
+      args: [clubId]
+    });
+    return rows.map((r: any) => ({
+      clerkId: r.clerk_id,
+      displayName: r.display_name,
+      email: r.email,
+      photoUrl: r.photo_url,
+      requestId: r.requestId
+    }));
+  },
+  handleJoinRequest: async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+    const { rows } = await turso.execute({ sql: 'SELECT * FROM club_join_requests WHERE id = ?', args: [requestId] });
+    if (!rows[0]) return;
+    const req = rows[0] as any;
+
+    await turso.execute({
+      sql: 'UPDATE club_join_requests SET status = ? WHERE id = ?',
+      args: [status, requestId]
+    });
+
+    if (status === 'APPROVED') {
+      await db.joinClub(req.club_id, req.user_id);
+    }
   },
 
   // --- Portal Settings ---

@@ -70,8 +70,13 @@ const App: React.FC = () => {
 
         // Fetch full profile (including game stats) in background
         db.getUserProfile(clerkUser.id).then(profile => {
-          if (profile && profile.gameStats) {
-            setUser(prev => prev ? { ...prev, gameStats: profile.gameStats } : null);
+          if (profile) {
+            setUser(prev => prev ? {
+              ...prev,
+              gameStats: profile.gameStats || prev.gameStats,
+              clubMembership: profile.clubMembership || prev.clubMembership,
+              pendingClubRequests: profile.pendingClubRequests || prev.pendingClubRequests
+            } : null);
           }
         });
       } else {
@@ -98,8 +103,13 @@ const App: React.FC = () => {
       setClubs(c || []);
       setAnnouncements(ann || []);
       setPortalSettings(settings || null);
-      if (profile && profile.gameStats) {
-        setUser(prev => prev ? { ...prev, gameStats: profile.gameStats } : null);
+      if (profile) {
+        setUser(prev => prev ? {
+          ...prev,
+          gameStats: profile.gameStats || prev.gameStats,
+          clubMembership: profile.clubMembership || prev.clubMembership,
+          pendingClubRequests: profile.pendingClubRequests || prev.pendingClubRequests
+        } : null);
       }
       // Load the rest in background
       fetchAdditionalData();

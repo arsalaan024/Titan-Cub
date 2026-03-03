@@ -145,6 +145,14 @@ export async function initSchema() {
       coding_gauntlet_points INTEGER DEFAULT 0,
       game_wise_high_scores TEXT DEFAULT '{}',
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS club_join_requests (
+      id TEXT PRIMARY KEY,
+      club_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT DEFAULT 'PENDING',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(club_id, user_id)
     )`
   ];
 
