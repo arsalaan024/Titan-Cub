@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User, Club, Activity, Achievement, AchievementPost } from '../types';
 import { useUser } from '@clerk/clerk-react';
 import { Link } from 'react-router-dom';
+import { db } from '../services/db';
 
 interface ProfileViewProps {
     user: User | null;
@@ -16,7 +17,50 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, clubs, activities, achi
     const { user: clerkUser } = useUser();
     const [activeTab, setActiveTab] = useState<'overview' | 'clubs' | 'activities' | 'achievements'>('overview');
     const [uploading, setUploading] = useState(false);
+    const [description, setDescription] = useState('');
+    const [isEditingDescription, setIsEditingDescription] = useState(false);
+    const [savingDescription, setSavingDescription] = useState(false);
     const photoInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (clerkUser?.id) {
+            db.getUserProfile(clerkUser.id).then(p => {
+                if (p) setDescription(p.bio || '');
+                // Auto-sync basic info if it's the first time
+                if (!p) {
+                    handleSaveDescription(p?.bio || '');
+                }
+            });
+        }
+    }, [clerkUser?.id]);
+
+    const handleSaveDescription = async (text: string) => {
+        if (!clerkUser) return;
+        setSavingDescription(true);
+        try {
+            await db.saveUserProfile({
+                clerkId: clerkUser.id,
+                displayName: clerkUser.fullName || user?.name || '',
+                email: clerkUser.primaryEmailAddress?.emailAddress || user?.email || '',
+                photoUrl: clerkUser.imageUrl || '',
+                bio: text,
+                role: user?.role || 'STUDENT'
+            });
+
+            // Also sync memberships to Turso for discovery
+            if (user?.clubMembership) {
+                for (const clubId of user.clubMembership) {
+                    await db.joinClub(clubId, clerkUser.id);
+                }
+            }
+
+            setIsEditingDescription(false);
+        } catch (err: any) {
+            console.error('Failed to save profile:', err);
+        } finally {
+            setSavingDescription(false);
+        }
+    };
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -117,7 +161,53 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, clubs, activities, achi
                         <div className="text-center md:text-left flex-1">
                             <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">{user.name}</h1>
                             <p className="text-white/60 mt-1 font-medium">{user.email}</p>
-                            <div className="flex flex-wrap gap-3 mt-4 justify-center md:justify-start">
+
+                            {/* Description Section */}
+                            <div className="mt-4 max-w-md bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-sm">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3 flex items-center gap-2">
+                                    <i className="fa-solid fa-id-card"></i> About Me
+                                </h3>
+                                {isEditingDescription ? (
+                                    <div className="space-y-3">
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            className="w-full bg-white/10 border border-white/20 rounded-2xl p-4 text-white text-sm outline-none focus:ring-2 focus:ring-white/30 placeholder-white/30 resize-none h-32"
+                                            placeholder="Introduce yourself to the community..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleSaveDescription(description)}
+                                                disabled={savingDescription}
+                                                className="bg-white text-[#800000] px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all disabled:opacity-50 shadow-xl"
+                                            >
+                                                {savingDescription ? 'Syncing...' : 'Update Description'}
+                                            </button>
+                                            <button
+                                                onClick={() => setIsEditingDescription(false)}
+                                                className="bg-white/10 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <p className="text-white/80 text-sm font-medium leading-relaxed italic pr-8">
+                                            {description || "Provide a brief description of yourself to help others get to know you better."}
+                                        </p>
+                                        <button
+                                            onClick={() => setIsEditingDescription(true)}
+                                            className="absolute top-0 -right-2 w-8 h-8 rounded-full bg-white/10 hover:bg-white hover:text-[#800000] transition-all flex items-center justify-center text-white/60 shadow-lg"
+                                            title="Edit Description"
+                                        >
+                                            <i className="fa-solid fa-pen-nib text-xs"></i>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-3 mt-6 justify-center md:justify-start">
                                 <span className="bg-white/15 text-white px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-white/10">
                                     {user.role.replace('_', ' ')}
                                 </span>

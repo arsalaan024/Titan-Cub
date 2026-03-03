@@ -42,9 +42,10 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
   const { clubId } = useParams();
   const club = clubs.find(c => c.id === clubId);
 
-  const [activeTab, setActiveTab] = useState<'activities' | 'chat'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'chat' | 'members'>('activities');
   const [chatMessage, setChatMessage] = useState('');
   const [clubChats, setClubChats] = useState<ChatMessage[]>([]);
+  const [clubMembers, setClubMembers] = useState<any[]>([]);
   const [newAnn, setNewAnn] = useState('');
   const [showAnnWidget, setShowAnnWidget] = useState(true);
   const [isEditingClub, setIsEditingClub] = useState(false);
@@ -86,6 +87,12 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [clubChats, activeTab]);
+
+  useEffect(() => {
+    if (clubId) {
+      db.getClubMembers(clubId).then(setClubMembers);
+    }
+  }, [clubId, activeTab]);
 
   if (!club) return <Navigate to="/clubs" />;
 
@@ -323,6 +330,13 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
               >
                 Chapter Chat
               </button>
+              <button
+                onClick={() => setActiveTab('members')}
+                className={`px-6 py-3 md:px-8 md:py-4 rounded-t-2xl md:rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeTab === 'members' ? 'text-white shadow-xl' : 'text-gray-400'}`}
+                style={activeTab === 'members' ? { backgroundColor: themeColor } : {}}
+              >
+                Members
+              </button>
             </div>
 
             {activeTab === 'activities' ? (
@@ -374,6 +388,44 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
                   <div className="py-24 text-center opacity-10">
                     <i className="fa-solid fa-folder-open text-7xl mb-6"></i>
                     <p className="text-lg font-black uppercase tracking-widest">No Data</p>
+                  </div>
+                )}
+              </div>
+            ) : activeTab === 'members' ? (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter">Chapter Members</h3>
+                  <div className="bg-gray-100 px-4 py-2 rounded-xl text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    {clubMembers.length} Joined
+                  </div>
+                </div>
+
+                {clubMembers.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+                    {clubMembers.map(m => (
+                      <Link
+                        key={m.clerkId}
+                        to={`/profile/${m.clerkId}`}
+                        className="group bg-white border border-gray-100 rounded-3xl p-4 md:p-6 text-center hover:shadow-xl transition-all hover:-translate-y-1"
+                      >
+                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl mx-auto overflow-hidden mb-4 ring-2 ring-transparent group-hover:ring-[#800000]/20 transition-all">
+                          {m.photoUrl ? (
+                            <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-[#800000]/10 flex items-center justify-center text-[#800000] font-black text-xl">
+                              {m.displayName?.[0]}
+                            </div>
+                          )}
+                        </div>
+                        <h4 className="text-[10px] md:text-xs font-black uppercase tracking-tight text-gray-900 line-clamp-1">{m.displayName}</h4>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">{m.role}</p>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-24 text-center opacity-10">
+                    <i className="fa-solid fa-users text-7xl mb-6"></i>
+                    <p className="text-lg font-black uppercase tracking-widest">No Members Yet</p>
                   </div>
                 )}
               </div>

@@ -20,6 +20,7 @@ import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
 import DashboardView from './views/DashboardView';
 import ProfileView from './views/ProfileView';
+import PublicProfileView from './views/PublicProfileView';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -198,6 +199,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginView onLogin={fetchInitialData} />} />
             <Route path="/register" element={<RegisterView />} />
             <Route path="/profile" element={<ProfileView user={user} clubs={clubs} activities={activities} achievements={achievements} posts={studentPosts} onLogout={handleLogout} />} />
+            <Route path="/profile/:userId" element={<PublicProfileView clubs={clubs} activities={activities} achievements={achievements} />} />
             <Route
               path="/dashboard"
               element={user?.role === UserRoles.SUPER_ADMIN ? <DashboardView /> : <Navigate to="/" />}

@@ -90,7 +90,7 @@ export interface AchievementPost {
   description: string;
   photos: string[];
   videoUrl?: string;
-  likes: string[]; 
+  likes: string[];
   comments: PostComment[];
 }
 
@@ -116,6 +116,7 @@ export interface CareerItem {
 
 export interface ChatMessage {
   id: string;
+  senderId?: string;
   senderName: string;
   senderRole: UserRole;
   text: string;

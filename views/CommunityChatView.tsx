@@ -24,6 +24,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
     if (!text.trim() || !user) return;
     const msg: ChatMessage = {
       id: Date.now().toString(),
+      senderId: user.id,
       senderName: user.role === UserRoles.STUDENT ? 'Anonymous Titan' : user.name,
       senderRole: user.role,
       text: text,
@@ -36,9 +37,10 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
   const handleCreatePoll = () => {
     const validOptions = pollData.options.filter(opt => opt.trim() !== '');
     if (!pollData.question || validOptions.length < 2 || !user) return;
-    
+
     const msg: ChatMessage = {
       id: Date.now().toString(),
+      senderId: user.id,
       senderName: user.role === UserRoles.STUDENT ? 'Anonymous Titan' : user.name,
       senderRole: user.role,
       text: `📊 POLL: ${pollData.question}`,
@@ -74,7 +76,13 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
               <div key={m.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] rounded-3xl p-6 shadow-sm relative ${isMe ? 'bg-maroon-800 text-white rounded-tr-none' : 'bg-white border border-gray-200 rounded-tl-none'}`}>
                   <div className="flex items-center justify-between gap-10 mb-3">
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60">{m.senderName}</span>
+                    {m.senderId ? (
+                      <Link to={`/profile/${m.senderId}`} className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60 hover:opacity-100 hover:text-maroon-300 transition-all">
+                        {m.senderName}
+                      </Link>
+                    ) : (
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60">{m.senderName}</span>
+                    )}
                     <span className="text-[8px] font-bold opacity-40 uppercase">{m.timestamp}</span>
                   </div>
                   <p className="text-sm font-medium leading-relaxed">{m.text}</p>
@@ -87,9 +95,9 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
 
         <div className="p-6 bg-white border-t border-gray-100">
           <div className="flex gap-4 items-end">
-             <div className="flex-grow bg-gray-50 rounded-[2rem] px-8 py-2 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-maroon-800/20 transition-all">
-               <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} className="w-full bg-transparent border-none focus:ring-0 text-base font-semibold placeholder-gray-400 outline-none text-gray-800 resize-none py-3" placeholder="Type a message..." />
-             </div>
+            <div className="flex-grow bg-gray-50 rounded-[2rem] px-8 py-2 flex items-center border-2 border-transparent focus-within:bg-white focus-within:border-maroon-800/20 transition-all">
+              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} className="w-full bg-transparent border-none focus:ring-0 text-base font-semibold placeholder-gray-400 outline-none text-gray-800 resize-none py-3" placeholder="Type a message..." />
+            </div>
             <button onClick={handleSend} className="bg-maroon-800 text-white w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-maroon-900 transition-all shadow-md active:scale-90 flex-shrink-0"><i className="fa-solid fa-paper-plane text-xl"></i></button>
           </div>
         </div>

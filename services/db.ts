@@ -193,14 +193,20 @@ export const db = {
   getGlobalChat: async () => {
     const { rows } = await turso.execute('SELECT * FROM global_chat ORDER BY timestamp ASC LIMIT 200');
     return rows.map((msg: any) => ({
-      id: String(msg.id), senderName: msg.sender_name, senderRole: msg.sender_role,
-      text: msg.text, timestamp: msg.timestamp, clubId: msg.club_id, poll: parseJSON(msg.poll, null)
+      id: String(msg.id),
+      senderId: msg.sender_id,
+      senderName: msg.sender_name,
+      senderRole: msg.sender_role,
+      text: msg.text,
+      timestamp: msg.timestamp,
+      clubId: msg.club_id,
+      poll: parseJSON(msg.poll, null)
     }));
   },
   addGlobalChat: async (msg: any) => {
     await turso.execute({
-      sql: `INSERT INTO global_chat (sender_name, sender_role, text, club_id, poll, timestamp) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [msg.senderName || '', msg.senderRole || '', msg.text,
+      sql: `INSERT INTO global_chat (sender_id, sender_name, sender_role, text, club_id, poll, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [msg.senderId || null, msg.senderName || '', msg.senderRole || '', msg.text,
       msg.clubId || '', msg.poll ? JSON.stringify(msg.poll) : null,
       msg.timestamp || new Date().toISOString()]
     });
@@ -212,6 +218,56 @@ export const db = {
   updateUserRole: async (_userId: string, _role: UserRole) => { },
   updateUserGameStats: async (_userId: string, _points: number, _accuracy: number, _levelCleared: boolean, _isCodingGauntlet: boolean = false) => { },
   getLeaderboard: async () => [],
+
+  // --- User Profiles (bio, public info) ---
+  getUserProfile: async (clerkId: string) => {
+    const { rows } = await turso.execute({ sql: 'SELECT * FROM user_profiles WHERE clerk_id = ?', args: [clerkId] });
+    if (!rows[0]) return null;
+    const r = rows[0] as any;
+    return { clerkId: r.clerk_id, displayName: r.display_name, email: r.email, photoUrl: r.photo_url, bio: r.bio || '', role: r.role };
+  },
+  saveUserProfile: async (profile: { clerkId: string; displayName: string; email: string; photoUrl: string; bio: string; role: string }) => {
+    await turso.execute({
+      sql: `INSERT INTO user_profiles (clerk_id, display_name, email, photo_url, bio, role, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(clerk_id) DO UPDATE SET
+              display_name=excluded.display_name,
+              email=excluded.email,
+              photo_url=excluded.photo_url,
+              bio=excluded.bio,
+              role=excluded.role,
+              updated_at=CURRENT_TIMESTAMP`,
+      args: [profile.clerkId, profile.displayName, profile.email, profile.photoUrl || '', profile.bio || '', profile.role || 'STUDENT']
+    });
+  },
+  getAllUserProfiles: async () => {
+    const { rows } = await turso.execute('SELECT * FROM user_profiles ORDER BY display_name');
+    return rows.map((r: any) => ({ clerkId: r.clerk_id, displayName: r.display_name, email: r.email, photo_url: r.photo_url, bio: r.bio || '', role: r.role }));
+  },
+
+  // --- Club Members ---
+  joinClub: async (clubId: string, userId: string, role = 'MEMBER') => {
+    await turso.execute({
+      sql: 'INSERT OR IGNORE INTO club_members (club_id, user_id, role) VALUES (?, ?, ?)',
+      args: [clubId, userId, role]
+    });
+  },
+  getClubMembers: async (clubId: string) => {
+    const { rows } = await turso.execute({
+      sql: `SELECT up.* FROM user_profiles up 
+            JOIN club_members cm ON up.clerk_id = cm.user_id 
+            WHERE cm.club_id = ?`,
+      args: [clubId]
+    });
+    return rows.map((r: any) => ({
+      clerkId: r.clerk_id,
+      displayName: r.display_name,
+      email: r.email,
+      photoUrl: r.photo_url,
+      bio: r.bio || '',
+      role: r.role
+    }));
+  },
 };
 
 // Remove old setDbToken export (no longer needed)

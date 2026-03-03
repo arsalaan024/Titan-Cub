@@ -4,15 +4,15 @@ const url = (import.meta as any).env?.VITE_TURSO_DATABASE_URL || '';
 const authToken = (import.meta as any).env?.VITE_TURSO_AUTH_TOKEN || '';
 
 if (!url) {
-    console.warn('⚠ VITE_TURSO_DATABASE_URL is not set.');
+  console.warn('⚠ VITE_TURSO_DATABASE_URL is not set.');
 }
 
 export const turso = createClient({ url, authToken });
 
 // Initialize schema on first load
 export async function initSchema() {
-    const statements = [
-        `CREATE TABLE IF NOT EXISTS clubs (
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS clubs (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       tagline TEXT,
@@ -25,7 +25,7 @@ export async function initSchema() {
       theme_color TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-        `CREATE TABLE IF NOT EXISTS activities (
+    `CREATE TABLE IF NOT EXISTS activities (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       club_id TEXT,
@@ -36,7 +36,7 @@ export async function initSchema() {
       video_url TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-        `CREATE TABLE IF NOT EXISTS achievements (
+    `CREATE TABLE IF NOT EXISTS achievements (
       id TEXT PRIMARY KEY,
       participant_name TEXT,
       activity_id TEXT,
@@ -46,7 +46,7 @@ export async function initSchema() {
       user_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-        `CREATE TABLE IF NOT EXISTS announcements (
+    `CREATE TABLE IF NOT EXISTS announcements (
       id TEXT PRIMARY KEY,
       text TEXT NOT NULL,
       sender_name TEXT,
@@ -54,7 +54,7 @@ export async function initSchema() {
       club_id TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-        `CREATE TABLE IF NOT EXISTS career_items (
+    `CREATE TABLE IF NOT EXISTS career_items (
       id TEXT PRIMARY KEY,
       type TEXT,
       title TEXT NOT NULL,
@@ -74,8 +74,9 @@ export async function initSchema() {
       who_can_apply TEXT,
       posted_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-        `CREATE TABLE IF NOT EXISTS global_chat (
+    `CREATE TABLE IF NOT EXISTS global_chat (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id TEXT,
       sender_name TEXT NOT NULL,
       sender_role TEXT,
       text TEXT NOT NULL,
@@ -83,14 +84,14 @@ export async function initSchema() {
       poll TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-        `CREATE TABLE IF NOT EXISTS team_members (
+    `CREATE TABLE IF NOT EXISTS team_members (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       role TEXT,
       image TEXT,
       club_id TEXT
     )`,
-        `CREATE TABLE IF NOT EXISTS student_posts (
+    `CREATE TABLE IF NOT EXISTS student_posts (
       id TEXT PRIMARY KEY,
       user_id TEXT,
       user_name TEXT,
@@ -104,17 +105,34 @@ export async function initSchema() {
       likes TEXT DEFAULT '[]',
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-        `CREATE TABLE IF NOT EXISTS post_comments (
+    `CREATE TABLE IF NOT EXISTS post_comments (
       id TEXT PRIMARY KEY,
       post_id TEXT NOT NULL,
       user_name TEXT,
       text TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_profiles (
+      clerk_id TEXT PRIMARY KEY,
+      display_name TEXT,
+      email TEXT,
+      photo_url TEXT,
+      bio TEXT DEFAULT '',
+      role TEXT DEFAULT 'STUDENT',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS club_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      club_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT DEFAULT 'MEMBER',
+      joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(club_id, user_id)
     )`
-    ];
+  ];
 
-    for (const sql of statements) {
-        await turso.execute(sql);
-    }
-    console.log('✅ Turso schema initialized');
+  for (const sql of statements) {
+    await turso.execute(sql);
+  }
+  console.log('✅ Turso schema initialized');
 }
