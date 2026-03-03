@@ -201,7 +201,23 @@ export const db = {
 
   // --- Global Chat ---
   getGlobalChat: async () => {
-    const { rows } = await turso.execute('SELECT * FROM (SELECT * FROM global_chat ORDER BY id DESC LIMIT 200) ORDER BY id ASC');
+    const { rows } = await turso.execute('SELECT * FROM (SELECT * FROM global_chat WHERE club_id = \'\' OR club_id IS NULL ORDER BY id DESC LIMIT 200) ORDER BY id ASC');
+    return rows.map((msg: any) => ({
+      id: String(msg.id),
+      senderId: msg.sender_id,
+      senderName: msg.sender_name,
+      senderRole: msg.sender_role,
+      text: msg.text,
+      timestamp: msg.timestamp,
+      clubId: msg.club_id,
+      poll: parseJSON(msg.poll, null)
+    }));
+  },
+  getClubChat: async (clubId: string) => {
+    const { rows } = await turso.execute({
+      sql: 'SELECT * FROM (SELECT * FROM global_chat WHERE club_id = ? ORDER BY id DESC LIMIT 200) ORDER BY id ASC',
+      args: [clubId]
+    });
     return rows.map((msg: any) => ({
       id: String(msg.id),
       senderId: msg.sender_id,

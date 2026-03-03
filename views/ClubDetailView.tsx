@@ -35,6 +35,9 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
   const [newAnn, setNewAnn] = useState('');
   const [isEditingClub, setIsEditingClub] = useState(false);
   const [showJoinRequests, setShowJoinRequests] = useState(false);
+  const [isPollOpen, setIsPollOpen] = useState(false);
+  const [pollData, setPollData] = useState({ question: '', options: ['', ''] });
+  const [localVotes, setLocalVotes] = useState<Record<string, number>>({});
 
   const themeColor = club?.themeColor || '#800000';
 
@@ -62,6 +65,14 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
     photos: [] as string[]
   });
 
+  const formatTime = (isoString: string) => {
+    try {
+      return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return isoString;
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'chat' && clubChats.length > 0) {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,6 +91,29 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
       }
     }
   }, [clubId, activeTab, isClubAdmin]);
+
+  // Poll for club chat messages
+  useEffect(() => {
+    if (activeTab !== 'chat' || !clubId) return;
+
+    const poll = async () => {
+      try {
+        const latestMsgs = await db.getClubChat(clubId);
+        setClubChats(prev => {
+          if (JSON.stringify(latestMsgs) !== JSON.stringify(prev)) {
+            return latestMsgs;
+          }
+          return prev;
+        });
+      } catch (e) {
+        console.error("Polling club chat error:", e);
+      }
+    };
+
+    poll(); // Initial fetch
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [clubId, activeTab]);
 
   if (!club) return <Navigate to="/clubs" />;
 
@@ -102,15 +136,48 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
   const handleSendChat = () => {
     if (!chatMessage.trim() || !user) return;
     const msg: ChatMessage = {
-      id: Math.random().toString(36).substr(2, 9),
-      senderName: user.name,
+      id: Date.now().toString(),
+      senderId: user.id,
+      senderName: user.name, // Real name in club chat
       senderRole: user.role,
       text: chatMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
       clubId: club.id
     };
-    setClubChats([...clubChats, msg]);
+    db.addGlobalChat(msg);
     setChatMessage('');
+  };
+
+  const handleCreatePoll = () => {
+    const validOptions = pollData.options.filter(opt => opt.trim() !== '');
+    if (!pollData.question || validOptions.length < 2 || !user) return;
+
+    const msg: ChatMessage = {
+      id: Date.now().toString(),
+      senderId: user.id,
+      senderName: user.name, // Real name in club chat
+      senderRole: user.role,
+      text: `📊 POLL: ${pollData.question}`,
+      timestamp: new Date().toISOString(),
+      clubId: club.id,
+      poll: {
+        question: pollData.question,
+        options: validOptions.map(opt => ({ text: opt, votes: 0 }))
+      }
+    };
+    db.addGlobalChat(msg);
+    setPollData({ question: '', options: ['', ''] });
+    setIsPollOpen(false);
+  };
+
+  const handleVote = async (messageId: string, optionIndex: number) => {
+    if (localVotes[messageId] !== undefined) return; // Prevent double voting locally for immediate UX
+    setLocalVotes(prev => ({ ...prev, [messageId]: optionIndex }));
+    try {
+      await db.votePoll(messageId, optionIndex);
+    } catch (err) {
+      console.error('Failed to vote:', err);
+    }
   };
 
   const handlePostAnnouncement = () => {
@@ -329,25 +396,125 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                   </div>
                 )}
 
+                {/* Poll Creation Modal within Club View */}
+                {isPollOpen && activeTab === 'chat' && (
+                  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl space-y-6">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-black text-gray-900 uppercase">Create a Club Poll</h3>
+                        <button onClick={() => setIsPollOpen(false)} className="text-gray-400 hover:text-maroon-800"><i className="fa-solid fa-xmark text-2xl"></i></button>
+                      </div>
+                      <div className="space-y-4">
+                        <input
+                          type="text"
+                          placeholder="Ask the club a question..."
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-maroon-800/20 px-6 py-4 rounded-2xl outline-none font-semibold text-gray-900"
+                          value={pollData.question}
+                          onChange={(e) => setPollData({ ...pollData, question: e.target.value })}
+                        />
+                        <div className="space-y-2">
+                          {pollData.options.map((opt, i) => (
+                            <input
+                              key={i}
+                              type="text"
+                              placeholder={`Option ${i + 1}`}
+                              className="w-full bg-gray-50 border-2 border-transparent focus:border-maroon-800/20 px-6 py-3 rounded-xl outline-none font-medium text-gray-700 text-sm"
+                              value={opt}
+                              onChange={(e) => {
+                                const newOpts = [...pollData.options];
+                                newOpts[i] = e.target.value;
+                                setPollData({ ...pollData, options: newOpts });
+                              }}
+                            />
+                          ))}
+                          <button
+                            onClick={() => setPollData({ ...pollData, options: [...pollData.options, ''] })}
+                            className="text-[10px] font-black uppercase tracking-widest hover:underline"
+                            style={{ color: themeColor }}
+                          >
+                            + Add Option
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCreatePoll}
+                        className="w-full text-white font-black py-4 rounded-2xl shadow-lg hover:brightness-90 transition-all uppercase tracking-widest text-xs"
+                        style={{ backgroundColor: themeColor }}
+                      >
+                        Launch Poll
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {activeTab === 'chat' && (
                   <div className="bg-gray-50 rounded-[3.5rem] p-12 border border-gray-100 flex flex-col h-[700px]">
                     <div className="flex-grow overflow-y-auto space-y-6 pr-4 mb-6 scroll-hide">
-                      {clubChats.map(m => (
-                        <div key={m.id} className={`flex ${m.senderName === user?.name ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[80%] p-6 rounded-3xl ${m.senderName === user?.name ? 'text-white rounded-tr-none' : 'bg-white border shadow-sm rounded-tl-none'}`} style={m.senderName === user?.name ? { backgroundColor: themeColor } : {}}>
-                            <div className="flex justify-between items-center gap-8 mb-2">
-                              <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{m.senderName}</span>
-                              <span className="text-[7px] font-bold opacity-40">{m.timestamp}</span>
+                      {clubChats.map(m => {
+                        const isMe = m.senderId === user?.id;
+                        return (
+                          <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] p-6 rounded-3xl ${isMe ? 'text-white rounded-tr-none' : 'bg-white border shadow-sm rounded-tl-none'}`} style={isMe ? { backgroundColor: themeColor } : {}}>
+                              <div className="flex justify-between items-center gap-8 mb-2">
+                                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{m.senderName}</span>
+                                <span className="text-[7px] font-bold opacity-40">{formatTime(m.timestamp)}</span>
+                              </div>
+                              <p className="text-sm font-medium leading-relaxed">{m.text}</p>
+
+                              {/* Poll Content in Club Chat */}
+                              {m.poll && (
+                                <div className={`mt-4 rounded-2xl p-5 border ${isMe ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-100'}`}>
+                                  <h4 className="font-black text-xs uppercase tracking-widest mb-4">{m.poll.question}</h4>
+                                  <div className="space-y-2">
+                                    {m.poll.options.map((opt: any, idx: number) => {
+                                      const hasVoted = localVotes[m.id!] !== undefined;
+                                      const totalVotes = m.poll?.options.reduce((acc: number, o: any) => acc + o.votes, 0) || 1;
+                                      const percent = Math.round((opt.votes / totalVotes) * 100);
+
+                                      return (
+                                        <button
+                                          key={idx}
+                                          onClick={() => handleVote(m.id!, idx)}
+                                          disabled={hasVoted}
+                                          className={`w-full text-left relative overflow-hidden rounded-xl p-3 text-xs font-semibold transition-all border ${localVotes[m.id!] === idx
+                                              ? 'border-gray-900 bg-white text-gray-900 shadow-md'
+                                              : isMe
+                                                ? 'border-white/20 hover:border-white/40 bg-white/5'
+                                                : 'border-transparent hover:border-gray-200 bg-black/5'
+                                            }`}
+                                        >
+                                          <div className={`relative z-10 flex justify-between items-center ${isMe && localVotes[m.id!] === idx ? 'text-gray-900' : ''}`}>
+                                            <span>{opt.text}</span>
+                                            {hasVoted && <span className="opacity-60">{percent}%</span>}
+                                          </div>
+                                          {hasVoted && (
+                                            <div
+                                              className={`absolute inset-y-0 left-0 transition-all duration-500 ${isMe ? 'bg-white/20' : 'bg-black/10'}`}
+                                              style={{ width: `${percent}%` }}
+                                            />
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
                             </div>
-                            <p className="text-sm font-medium">{m.text}</p>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <div ref={chatEndRef} />
                     </div>
                     <div className="bg-white rounded-[2rem] p-3 flex gap-4 shadow-sm border border-gray-100">
+                      <button
+                        onClick={() => setIsPollOpen(true)}
+                        className="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:bg-gray-100 hover:text-gray-600 transition-all border border-transparent flex-shrink-0"
+                      >
+                        <i className="fa-solid fa-square-poll-vertical text-xl"></i>
+                      </button>
                       <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendChat()} placeholder="Draft message..." className="flex-grow bg-transparent border-none px-6 py-4 font-bold outline-none text-sm" />
-                      <button onClick={handleSendChat} className="w-14 h-14 rounded-2xl text-white flex items-center justify-center hover:opacity-90 transition-all" style={{ backgroundColor: themeColor }}><i className="fa-solid fa-paper-plane"></i></button>
+                      <button onClick={handleSendChat} className="w-14 h-14 rounded-2xl text-white flex items-center justify-center hover:opacity-90 transition-all flex-shrink-0" style={{ backgroundColor: themeColor }}><i className="fa-solid fa-paper-plane"></i></button>
                     </div>
                   </div>
                 )}
