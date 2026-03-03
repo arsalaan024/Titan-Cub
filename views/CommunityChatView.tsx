@@ -86,6 +86,34 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
                     <span className="text-[8px] font-bold opacity-40 uppercase">{m.timestamp}</span>
                   </div>
                   <p className="text-sm font-medium leading-relaxed">{m.text}</p>
+                  {(() => {
+                    const driveRegex = /(https:\/\/drive\.google\.com\/file\/d\/([^\/\?]+))/;
+                    const dropboxRegex = /(https:\/\/www\.dropbox\.com\/s\/([^\/\?]+))/;
+
+                    const driveMatch = m.text.match(driveRegex);
+                    const dropboxMatch = m.text.match(dropboxRegex);
+
+                    if (driveMatch) {
+                      const fileId = driveMatch[2];
+                      const embedUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                      return (
+                        <div className="mt-3 rounded-xl overflow-hidden border border-white/20 shadow-sm">
+                          <img src={embedUrl} alt="Shared Asset" className="max-w-full h-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                        </div>
+                      );
+                    }
+
+                    if (dropboxMatch) {
+                      const embedUrl = dropboxMatch[1].replace('dl=0', 'raw=1');
+                      return (
+                        <div className="mt-3 rounded-xl overflow-hidden border border-white/20 shadow-sm">
+                          <img src={embedUrl} alt="Shared Asset" className="max-w-full h-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })()}
                 </div>
               </div>
             );

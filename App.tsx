@@ -117,10 +117,33 @@ const App: React.FC = () => {
       setMessages(msg || []);
       setStudentPosts(sp || []);
       setAllUsers(u || []);
+
+      setAllUsers(u || []);
     } catch (err) {
       console.error("Error fetching additional data:", err);
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+
+    const poll = async () => {
+      try {
+        const latestMsgs = await db.getGlobalChat();
+        setMessages(prev => {
+          if (JSON.stringify(latestMsgs) !== JSON.stringify(prev)) {
+            return latestMsgs;
+          }
+          return prev;
+        });
+      } catch (e) {
+        console.error("Polling error:", e);
+      }
+    };
+
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   if (loading) {
     // Safety fallback: if it takes more than 5 seconds, show an error instead of hanging
