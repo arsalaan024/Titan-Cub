@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User, UserRoles } from '../types';
+import { useUser } from '@clerk/clerk-react';
 
 interface NavbarProps {
   user: User | null;
@@ -11,6 +12,20 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user: clerkUser } = useUser();
+
+  // Avatar component — shows Clerk photo or a person silhouette
+  const Avatar = ({ size = 'w-9 h-9' }: { size?: string }) => (
+    <div className={`${size} rounded-full overflow-hidden bg-[#800000] flex items-center justify-center ring-2 ring-[#800000]/30 hover:ring-[#800000] transition-all`}>
+      {clerkUser?.imageUrl ? (
+        <img src={clerkUser.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+      ) : (
+        <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5">
+          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+        </svg>
+      )}
+    </div>
+  );
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -55,24 +70,17 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               </Link>
             )}
 
-            {/* Profile avatar only — login/logout is on profile page */}
-            <Link
-              to="/profile"
-              className="ml-4 w-9 h-9 bg-maroon-800 rounded-full flex items-center justify-center text-white font-black text-xs hover:bg-maroon-900 transition-colors shadow"
-              title={user ? user.name : 'Login'}
-            >
-              {user ? user.name?.charAt(0)?.toUpperCase() : '?'}
+            {/* Profile avatar — shows photo or person icon */}
+            <Link to="/profile" className="ml-4" title={user ? user.name : 'Profile'}>
+              <Avatar />
             </Link>
           </div>
 
           {/* Mobile hamburger */}
           <div className="lg:hidden flex items-center gap-3">
             {/* Mobile profile icon */}
-            <Link
-              to="/profile"
-              className="w-8 h-8 bg-maroon-800 rounded-full flex items-center justify-center text-white font-black text-xs hover:bg-maroon-900 transition-colors"
-            >
-              {user ? user.name?.charAt(0)?.toUpperCase() : '?'}
+            <Link to="/profile">
+              <Avatar size="w-8 h-8" />
             </Link>
             <button onClick={() => setIsOpen(!isOpen)} className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-maroon-800 hover:bg-gray-100 focus:outline-none">
               <i className={`fa-solid ${isOpen ? 'fa-xmark' : 'fa-bars'} text-xl`}></i>
