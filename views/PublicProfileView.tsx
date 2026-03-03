@@ -2,16 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { db } from '../services/db';
-import { Achievement, Activity, Club } from '../types';
+import { Achievement, Activity, Club, User, UserRoles } from '../types';
 import { formatMediaLink } from '../services/mediaUtils';
 
 interface PublicProfileViewProps {
+    user: User | null;
     clubs: Club[];
     activities: Activity[];
     achievements: Achievement[];
 }
 
-const PublicProfileView: React.FC<PublicProfileViewProps> = ({ clubs, activities, achievements }) => {
+const PublicProfileView: React.FC<PublicProfileViewProps> = ({ user, clubs, activities, achievements }) => {
     const { userId } = useParams<{ userId: string }>();
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -28,6 +29,22 @@ const PublicProfileView: React.FC<PublicProfileViewProps> = ({ clubs, activities
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-[#800000] border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    const isAuthorizedAdmin = user?.role === UserRoles.SUPER_ADMIN;
+    const isOwner = user?.id === userId;
+
+    if (!isAuthorizedAdmin && !isOwner) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center py-24">
+                <div className="text-center bg-white p-12 rounded-[2.5rem] shadow-2xl max-w-lg border-t-8 border-maroon-800 mx-4">
+                    <div className="text-6xl mb-6"><i className="fa-solid fa-user-shield text-gray-300"></i></div>
+                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter mb-4">Access Denied</h2>
+                    <p className="text-gray-500 mb-8 font-medium">To protect student privacy and preserve anonymity, public profiles are restricted to Super Administrators.</p>
+                    <Link to="/" className="inline-block bg-maroon-800 text-white font-black px-8 py-4 rounded-2xl hover:bg-maroon-900 transition-all uppercase tracking-widest text-xs">Return Home</Link>
+                </div>
             </div>
         );
     }

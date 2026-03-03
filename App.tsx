@@ -250,7 +250,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginView onLogin={fetchInitialData} />} />
             <Route path="/register" element={<RegisterView />} />
             <Route path="/profile" element={<ProfileView user={user} clubs={clubs} activities={activities} achievements={achievements} posts={studentPosts} onLogout={handleLogout} portalSettings={portalSettings} onUpdateSettings={fetchInitialData} />} />
-            <Route path="/profile/:userId" element={<PublicProfileView clubs={clubs} activities={activities} achievements={achievements} />} />
+            <Route path="/profile/:userId" element={<PublicProfileView user={user} clubs={clubs} activities={activities} achievements={achievements} />} />
             <Route
               path="/dashboard"
               element={user?.role === UserRoles.SUPER_ADMIN ? <DashboardView /> : <Navigate to="/" />}
