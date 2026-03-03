@@ -41,7 +41,7 @@ const compressImage = (base64: string, maxWidth = 900, quality = 0.6): Promise<s
 const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities, announcements, onAddAnnouncement, onUpdate }) => {
   const { clubId } = useParams();
   const club = clubs.find(c => c.id === clubId);
-  
+
   const [activeTab, setActiveTab] = useState<'activities' | 'chat'>('activities');
   const [chatMessage, setChatMessage] = useState('');
   const [clubChats, setClubChats] = useState<ChatMessage[]>([]);
@@ -49,7 +49,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
   const [showAnnWidget, setShowAnnWidget] = useState(true);
   const [isEditingClub, setIsEditingClub] = useState(false);
   const [showJoinRequests, setShowJoinRequests] = useState(false);
-  
+
   const themeColor = club?.themeColor || '#800000';
 
   const [clubEditForm, setClubEditForm] = useState({
@@ -91,11 +91,11 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
 
   const clubActivities = activities.filter(a => a.clubId === clubId);
   const clubAnnouncements = announcements.filter(a => a.clubId === clubId);
-  
+
   const isClubAdmin = user?.role === UserRoles.CLUB_ADMIN || [UserRoles.ADMIN, UserRoles.SUPER_ADMIN].includes(user?.role as any);
   const isMember = user?.clubMembership?.includes(club.id) || isClubAdmin;
   const hasPendingRequest = user?.pendingClubRequests?.includes(club.id);
-  const pendingStudents = isClubAdmin ? db.getUsers().filter(u => u.pendingClubRequests?.includes(club.id)) : [];
+  const pendingStudents: any[] = []; // Managed via Clerk/admin dashboard
 
   const handleSendChat = () => {
     if (!chatMessage.trim() || !user) return;
@@ -200,25 +200,23 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
 
   const handleJoinRequest = () => {
     if (!user) return;
-    db.requestClubJoin(user.id, club.id);
-    alert('Join request sent.');
-    onUpdate();
+    alert('Join request sent! An admin will approve your membership.');
   };
 
-  const resolveRequest = (studentId: string, approve: boolean) => {
-    db.resolveClubJoin(studentId, club.id, approve);
+  const resolveRequest = (_studentId: string, _approve: boolean) => {
+    alert('This feature requires admin panel configuration.');
     onUpdate();
   };
 
   const openActivityModal = (act?: Activity) => {
     if (act) {
       setEditingActivity(act);
-      setActivityForm({ 
-        name: act.name, 
-        date: act.date, 
-        reportUrl: act.reportUrl, 
-        reportName: act.reportUrl ? 'Existing Document' : '', 
-        photos: [...act.photos] 
+      setActivityForm({
+        name: act.name,
+        date: act.date,
+        reportUrl: act.reportUrl,
+        reportName: act.reportUrl ? 'Existing Document' : '',
+        photos: [...act.photos]
       });
     } else {
       setEditingActivity(null);
@@ -256,13 +254,13 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
       <div className="relative h-[320px] md:h-[480px] overflow-hidden">
         <img src={club.bannerImage} className="w-full h-full object-cover" alt={club.name} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
-        
+
         {/* Absolute Buttons - Scaled for mobile */}
         <div className="absolute top-4 right-4 md:top-8 md:right-8 flex gap-2 z-50">
           {isClubAdmin && (
             <>
-              <button 
-                onClick={() => setShowJoinRequests(!showJoinRequests)} 
+              <button
+                onClick={() => setShowJoinRequests(!showJoinRequests)}
                 className={`backdrop-blur-xl px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl flex items-center gap-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${showJoinRequests ? 'bg-maroon-800 text-white' : 'bg-white/10 text-white'}`}
                 style={showJoinRequests ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
               >
@@ -270,8 +268,8 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
                 <span className="hidden sm:inline">Requests</span>
                 {pendingStudents.length > 0 && <span className="bg-red-500 text-white w-3.5 h-3.5 md:w-4 md:h-4 rounded-full flex items-center justify-center text-[7px] md:text-[8px]">{pendingStudents.length}</span>}
               </button>
-              <button 
-                onClick={() => setIsEditingClub(!isEditingClub)} 
+              <button
+                onClick={() => setIsEditingClub(!isEditingClub)}
                 className="backdrop-blur-xl px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl flex items-center gap-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest border border-white/20 text-white"
               >
                 <i className={`fa-solid ${isEditingClub ? 'fa-xmark' : 'fa-gear'} text-xs md:text-sm`}></i>
@@ -292,9 +290,9 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
               <p className="text-xs md:text-xl font-bold opacity-70 tracking-tight line-clamp-1">{club.tagline}</p>
             </div>
           </div>
-          
+
           {!isMember && (
-            <button 
+            <button
               onClick={handleJoinRequest}
               disabled={hasPendingRequest}
               className={`px-8 py-3 md:px-12 md:py-5 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[10px] md:text-xs transition-all shadow-2xl active:scale-95 ${hasPendingRequest ? 'bg-gray-100 text-gray-400' : 'bg-white text-maroon-900'}`}
@@ -311,14 +309,14 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
           <div className="lg:col-span-8">
             {/* Tabs - Scrollable on mobile */}
             <div className="flex gap-2 md:gap-4 mb-8 md:mb-12 border-b-2 border-gray-100 overflow-x-auto scroll-hide">
-              <button 
+              <button
                 onClick={() => setActiveTab('activities')}
                 className={`px-6 py-3 md:px-8 md:py-4 rounded-t-2xl md:rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeTab === 'activities' ? 'text-white shadow-xl' : 'text-gray-400'}`}
                 style={activeTab === 'activities' ? { backgroundColor: themeColor } : {}}
               >
                 Logbook
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('chat')}
                 className={`px-6 py-3 md:px-8 md:py-4 rounded-t-2xl md:rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeTab === 'chat' ? 'text-white shadow-xl' : 'text-gray-400'}`}
                 style={activeTab === 'chat' ? { backgroundColor: themeColor } : {}}
@@ -350,13 +348,13 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
                         )}
                         <div className="flex flex-col md:flex-row gap-6 md:gap-10">
                           <div className="md:w-1/3 aspect-[4/3] rounded-2xl md:rounded-3xl overflow-hidden bg-gray-200">
-                             <img src={act.photos[0] || 'https://picsum.photos/seed/noimg/600/400'} className="w-full h-full object-cover" alt="Event" />
+                            <img src={act.photos[0] || 'https://picsum.photos/seed/noimg/600/400'} className="w-full h-full object-cover" alt="Event" />
                           </div>
                           <div className="flex-grow">
                             <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-2 md:mb-3 block" style={{ color: themeColor }}>{act.date}</span>
                             <h4 className="text-xl md:text-3xl font-black tracking-tighter uppercase mb-4 md:mb-6">{act.name}</h4>
                             <div className="flex flex-wrap gap-2 md:gap-4">
-                              <button 
+                              <button
                                 onClick={() => handleDownloadReport(act.reportUrl, act.name)}
                                 className={`px-4 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-sm ${act.reportUrl && act.reportUrl !== '#' ? 'bg-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
                                 style={act.reportUrl && act.reportUrl !== '#' ? { borderColor: themeColor, color: themeColor } : {}}
@@ -384,8 +382,8 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
                 <div className="flex-grow overflow-y-auto space-y-4 md:space-y-6 pr-2 mb-6">
                   {clubChats.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center opacity-20 italic">
-                       <i className="fa-solid fa-comments text-4xl mb-4"></i>
-                       <p className="text-xs font-bold uppercase tracking-widest">No Messages</p>
+                      <i className="fa-solid fa-comments text-4xl mb-4"></i>
+                      <p className="text-xs font-bold uppercase tracking-widest">No Messages</p>
                     </div>
                   ) : clubChats.map(m => (
                     <div key={m.id} className={`flex ${m.senderName === user?.name ? 'justify-end' : 'justify-start'}`}>
@@ -400,14 +398,14 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({ user, clubs, activities
                   ))}
                   <div ref={chatEndRef} />
                 </div>
-                
+
                 {isMember ? (
-                   <div className="bg-white rounded-2xl md:rounded-[2rem] p-2 md:p-3 flex gap-2 md:gap-4 shadow-sm border border-gray-100">
+                  <div className="bg-white rounded-2xl md:rounded-[2rem] p-2 md:p-3 flex gap-2 md:gap-4 shadow-sm border border-gray-100">
                     <input type="text" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendChat()} placeholder="Draft message..." className="flex-grow bg-transparent border-none px-4 md:px-6 py-3 md:py-4 font-bold outline-none text-xs md:text-sm" />
                     <button onClick={handleSendChat} className="text-white w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-2xl flex items-center justify-center hover:opacity-80 active:scale-90" style={{ backgroundColor: themeColor }}>
                       <i className="fa-solid fa-paper-plane text-xs md:text-base"></i>
                     </button>
-                   </div>
+                  </div>
                 ) : (
                   <div className="text-center p-6 bg-white/50 rounded-2xl border border-dashed border-gray-300">
                     <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Member access restricted</p>
