@@ -222,6 +222,18 @@ export const db = {
       ]
     });
   },
+  votePoll: async (messageId: string, optionIndex: number) => {
+    const { rows } = await turso.execute({ sql: 'SELECT poll FROM global_chat WHERE id = ?', args: [messageId] });
+    if (!rows[0]) return;
+    const poll = parseJSON(rows[0].poll, null);
+    if (poll && poll.options[optionIndex]) {
+      poll.options[optionIndex].votes += 1;
+      await turso.execute({
+        sql: 'UPDATE global_chat SET poll = ? WHERE id = ?',
+        args: [JSON.stringify(poll), messageId]
+      });
+    }
+  },
 
   // --- Users (stubs — managed by Clerk) ---
   getUsers: async () => [],
