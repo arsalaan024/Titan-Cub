@@ -26,9 +26,9 @@ export const formatMediaLink = (link: string | undefined | null): string => {
             }
 
             if (fileId) {
-                // Using uc?id is the most common for public bypass
-                // We use export=view to try and get the raw stream
-                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+                // Using the thumbnail endpoint is much more reliable for public images 
+                // as it returns an image content-type that bypasses ORB/CORB security blocks.
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
             }
         }
 
