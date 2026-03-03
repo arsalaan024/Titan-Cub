@@ -465,11 +465,29 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                     <div className="flex-grow overflow-y-auto space-y-6 pr-4 mb-6 scroll-hide">
                       {clubChats.map(m => {
                         const isMe = m.senderId === user?.id;
+                        const isAuthorizedAdmin = user?.role === UserRoles.ADMIN || user?.role === UserRoles.SUPER_ADMIN;
+
+                        let displayRole = m.senderRole || UserRoles.STUDENT;
+                        let displayName = m.senderName;
+
+                        if (!isAuthorizedAdmin && !isMe && displayRole === UserRoles.STUDENT) {
+                          displayName = 'Anonymous Titan';
+                        }
+
                         return (
                           <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] p-6 rounded-3xl ${isMe ? 'text-white rounded-tr-none' : 'bg-white border shadow-sm rounded-tl-none'}`} style={isMe ? { backgroundColor: themeColor } : {}}>
                               <div className="flex justify-between items-center gap-8 mb-2">
-                                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{m.senderName}</span>
+                                {m.senderId && isAuthorizedAdmin ? (
+                                  <Link to={`/profile/${m.senderId}`} className="text-[9px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-all flex flex-col gap-1">
+                                    <span>{displayName}</span>
+                                    <span className="text-[7px] opacity-70">{m.senderId.substring(0, 8)}...</span>
+                                  </Link>
+                                ) : (
+                                  <span className="text-[9px] font-black uppercase tracking-widest opacity-60">
+                                    {displayName} {isAuthorizedAdmin && <span className="opacity-70 ml-2">(ID: {m.senderId?.substring(0, 8)})</span>}
+                                  </span>
+                                )}
                                 <span className="text-[7px] font-bold opacity-40">{formatTime(m.timestamp)}</span>
                               </div>
                               <p className="text-sm font-medium leading-relaxed">{m.text}</p>
