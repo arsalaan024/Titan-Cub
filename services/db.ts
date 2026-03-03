@@ -1,5 +1,6 @@
-import { User, Club, Activity, Achievement, CareerItem, ChatMessage, UserRole, PortalSettings } from '../types';
+import { User, Club, Activity, Achievement, CareerItem, ChatMessage, UserRole, PortalSettings, CodingModule, CodingProblem } from '../types';
 import { turso, initSchema } from './tursoClient';
+import { CODING_CHALLENGES } from '../data/coding_gauntlet';
 
 // Initialize schema when the module loads
 initSchema().catch(console.error);
@@ -11,6 +12,15 @@ const parseJSON = (val: any, fallback: any = []) => {
 };
 
 export const db = {
+
+  // --- Games & Coding Gauntlet ---
+  getCodingModules: () => CODING_CHALLENGES,
+  addCodingProblem: (moduleId: string, problem: CodingProblem) => {
+    const module = CODING_CHALLENGES.find(m => m.id === moduleId);
+    if (module) {
+      module.problems.push(problem);
+    }
+  },
 
   // --- Clubs ---
   getClubs: async () => {
@@ -216,15 +226,91 @@ export const db = {
   getUsers: async () => [],
   updateUserStatus: async (_userId: string, _status: string) => { },
   updateUserRole: async (_userId: string, _role: UserRole) => { },
-  updateUserGameStats: async (_userId: string, _points: number, _accuracy: number, _levelCleared: boolean, _isCodingGauntlet: boolean = false) => { },
-  getLeaderboard: async () => [],
+
+  getUserGameStats: async (userId: string) => {
+    const { rows } = await turso.execute({ sql: 'SELECT * FROM user_game_stats WHERE clerk_id = ?', args: [userId] });
+    if (!rows[0]) return null;
+    const r = rows[0] as any;
+    return {
+      totalPoints: r.total_points,
+      gamesPlayed: r.games_played,
+      levelsCleared: r.levels_cleared,
+      averageAccuracy: r.accuracy_count > 0 ? r.accuracy_sum / r.accuracy_count : 0,
+      gameWiseHighScores: parseJSON(r.game_wise_high_scores, {}),
+      codingGauntletPoints: r.coding_gauntlet_points
+    };
+  },
+
+  updateUserGameStats: async (userId: string, points: number, accuracy: number, levelCleared: boolean, isCodingGauntlet: boolean = false) => {
+    // Get current stats first
+    const { rows } = await turso.execute({ sql: 'SELECT * FROM user_game_stats WHERE clerk_id = ?', args: [userId] });
+
+    if (rows[0]) {
+      const r = rows[0] as any;
+      await turso.execute({
+        sql: `UPDATE user_game_stats SET 
+                total_points = total_points + ?,
+                games_played = games_played + 1,
+                levels_cleared = levels_cleared + ?,
+                accuracy_sum = accuracy_sum + ?,
+                accuracy_count = accuracy_count + 1,
+                coding_gauntlet_points = coding_gauntlet_points + ?,
+                updated_at = CURRENT_TIMESTAMP
+              WHERE clerk_id = ?`,
+        args: [points, levelCleared ? 1 : 0, accuracy, isCodingGauntlet ? points : 0, userId]
+      });
+    } else {
+      await turso.execute({
+        sql: `INSERT INTO user_game_stats (clerk_id, total_points, games_played, levels_cleared, accuracy_sum, accuracy_count, coding_gauntlet_points)
+              VALUES (?, ?, 1, ?, ?, 1, ?)`,
+        args: [userId, points, levelCleared ? 1 : 0, accuracy, isCodingGauntlet ? points : 0]
+      });
+    }
+  },
+
+  getLeaderboard: async () => {
+    const { rows } = await turso.execute(`
+      SELECT up.display_name, up.clerk_id, ugs.total_points, ugs.coding_gauntlet_points, ugs.accuracy_sum, ugs.accuracy_count
+      FROM user_game_stats ugs
+      JOIN user_profiles up ON ugs.clerk_id = up.clerk_id
+      ORDER BY ugs.total_points DESC
+      LIMIT 10
+    `);
+
+    return rows.map((r: any) => ({
+      id: r.clerk_id,
+      name: r.display_name,
+      points: r.total_points,
+      gauntlet: r.coding_gauntlet_points,
+      accuracy: r.accuracy_count > 0 ? Math.round(r.accuracy_sum / r.accuracy_count) : 0
+    }));
+  },
 
   // --- User Profiles (bio, public info) ---
   getUserProfile: async (clerkId: string) => {
     const { rows } = await turso.execute({ sql: 'SELECT * FROM user_profiles WHERE clerk_id = ?', args: [clerkId] });
-    if (!rows[0]) return null;
+
+    // Fetch game stats independently
+    const gameStats = await db.getUserGameStats(clerkId);
+
+    if (!rows[0]) {
+      // If profile doesn't exist but game stats do, return a partial profile
+      if (gameStats) {
+        return { clerkId, displayName: '', email: '', photoUrl: '', bio: '', role: 'STUDENT' as UserRole, gameStats };
+      }
+      return null;
+    }
+
     const r = rows[0] as any;
-    return { clerkId: r.clerk_id, displayName: r.display_name, email: r.email, photoUrl: r.photo_url, bio: r.bio || '', role: r.role };
+    return {
+      clerkId: r.clerk_id,
+      displayName: r.display_name,
+      email: r.email,
+      photoUrl: r.photo_url,
+      bio: r.bio || '',
+      role: r.role,
+      gameStats: gameStats || undefined
+    };
   },
   saveUserProfile: async (profile: { clerkId: string; displayName: string; email: string; photoUrl: string; bio: string; role: string }) => {
     await turso.execute({

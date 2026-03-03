@@ -89,15 +89,17 @@ const PublicProfileView: React.FC<PublicProfileViewProps> = ({ clubs, activities
                         </div>
 
                         {/* Stats */}
-                        <div className="flex gap-8">
+                        <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-4">
                             {[
-                                { label: 'Clubs', value: myClubs.length },
-                                { label: 'Activities', value: myActivities.length },
-                                { label: 'Wins', value: myAchievements.length },
+                                { label: 'Clubs', value: myClubs.length, icon: '🏛️' },
+                                { label: 'Activities', value: myActivities.length, icon: '📅' },
+                                { label: 'Wins', value: myAchievements.length, icon: '🏆' },
+                                { label: 'Game Points', value: profile.gameStats?.totalPoints || 0, icon: '🎮' },
                             ].map(s => (
-                                <div key={s.label} className="text-center">
-                                    <div className="text-3xl font-black text-white">{s.value}</div>
-                                    <div className="text-white/50 text-[10px] font-black uppercase tracking-widest mt-1">{s.label}</div>
+                                <div key={s.label} className="text-center bg-white/5 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/10 min-w-[90px] hover:bg-white/10 transition-all cursor-default">
+                                    <div className="text-lg mb-1">{s.icon}</div>
+                                    <div className="text-2xl font-black text-white">{s.value}</div>
+                                    <div className="text-white/40 text-[8px] font-black uppercase tracking-widest leading-none mt-1">{s.label}</div>
                                 </div>
                             ))}
                         </div>

@@ -38,14 +38,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     useEffect(() => {
         if (clerkUser?.id) {
             db.getUserProfile(clerkUser.id).then(p => {
-                if (p) setDescription(p.bio || '');
+                if (p) {
+                    setDescription(p.bio || '');
+                    // If App.tsx hasn't loaded stats yet but the local fetch did, trigger a sync
+                    if (!user?.gameStats && p.gameStats) {
+                        onUpdateSettings();
+                    }
+                }
                 // Auto-sync basic info if it's the first time
                 if (!p) {
                     handleSaveDescription(p?.bio || '');
                 }
             });
         }
-    }, [clerkUser?.id]);
+    }, [clerkUser?.id, user?.gameStats]);
 
     const handleSaveDescription = async (text: string) => {
         if (!clerkUser) return;
@@ -68,6 +74,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             }
 
             setIsEditingDescription(false);
+            onUpdateSettings();
         } catch (err: any) {
             console.error('Failed to save profile:', err);
         } finally {
@@ -218,14 +225,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                             </div>
                         </div>
 
-                        <div className="flex gap-6">
+                        <div className="flex flex-wrap justify-center md:justify-start gap-8 mt-4">
                             {[
-                                { label: 'Clubs', value: myClubs.length },
-                                { label: 'Achievements', value: myAchievements.length },
+                                { label: 'Clubs', value: myClubs.length, icon: '🏛️' },
+                                { label: 'Achievements', value: myAchievements.length, icon: '🏆' },
+                                { label: 'Game Points', value: user?.gameStats?.totalPoints || 0, icon: '🎮' },
                             ].map(stat => (
-                                <div key={stat.label} className="text-center">
-                                    <div className="text-3xl font-black text-white">{stat.value}</div>
-                                    <div className="text-white/50 text-[10px] font-black uppercase tracking-widest">{stat.label}</div>
+                                <div key={stat.label} className="text-center bg-white/5 backdrop-blur-md rounded-2xl px-6 py-4 border border-white/10 min-w-[100px] hover:bg-white/10 transition-all cursor-default group">
+                                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">{stat.icon}</div>
+                                    <div className="text-2xl font-black text-white">{stat.value}</div>
+                                    <div className="text-white/40 text-[9px] font-black uppercase tracking-widest leading-none mt-1">{stat.label}</div>
                                 </div>
                             ))}
                         </div>

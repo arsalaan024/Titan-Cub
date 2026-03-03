@@ -67,6 +67,13 @@ const App: React.FC = () => {
           status: 'active'
         };
         setUser(mappedUser);
+
+        // Fetch full profile (including game stats) in background
+        db.getUserProfile(clerkUser.id).then(profile => {
+          if (profile && profile.gameStats) {
+            setUser(prev => prev ? { ...prev, gameStats: profile.gameStats } : null);
+          }
+        });
       } else {
         setUser(null);
       }
@@ -82,14 +89,18 @@ const App: React.FC = () => {
 
   const fetchInitialData = async () => {
     try {
-      const [c, ann, settings] = await Promise.all([
+      const [c, ann, settings, profile] = await Promise.all([
         db.getClubs(),
         db.getAnnouncements(),
-        db.getPortalSettings()
+        db.getPortalSettings(),
+        clerkUser ? db.getUserProfile(clerkUser.id) : Promise.resolve(null)
       ]);
       setClubs(c || []);
       setAnnouncements(ann || []);
       setPortalSettings(settings || null);
+      if (profile && profile.gameStats) {
+        setUser(prev => prev ? { ...prev, gameStats: profile.gameStats } : null);
+      }
       // Load the rest in background
       fetchAdditionalData();
     } catch (err) {

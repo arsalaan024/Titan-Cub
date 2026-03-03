@@ -134,6 +134,17 @@ export async function initSchema() {
       theme TEXT DEFAULT 'default',
       storage_mode TEXT DEFAULT 'database',
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_game_stats (
+      clerk_id TEXT PRIMARY KEY,
+      total_points INTEGER DEFAULT 0,
+      games_played INTEGER DEFAULT 0,
+      levels_cleared INTEGER DEFAULT 0,
+      accuracy_sum REAL DEFAULT 0,
+      accuracy_count INTEGER DEFAULT 0,
+      coding_gauntlet_points INTEGER DEFAULT 0,
+      game_wise_high_scores TEXT DEFAULT '{}',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 
