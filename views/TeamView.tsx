@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TeamMember, User, UserRoles, PortalSettings } from '../types';
 import MediaInput from '../components/MediaInput';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface TeamViewProps {
   members: TeamMember[];
@@ -61,7 +62,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, user, onAdd, onUpdate, onD
                 </div>
               )}
               <div className="aspect-[3.2/4] overflow-hidden rounded-[0.8cm] bg-gray-50">
-                <img src={member.image} alt={member.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <img src={formatMediaLink(member.image)} alt={member.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
               </div>
               <div className="pt-6 pb-2 px-2 border-t-4 border-maroon-800 mt-2">
                 <p className="text-maroon-800 font-black uppercase tracking-[0.3em] text-[9px] mb-1">{member.role}</p>
