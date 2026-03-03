@@ -40,15 +40,21 @@ const RegisterView: React.FC = () => {
     console.log('--- CLERK ENROLLMENT START ---');
 
     try {
-      const restrictedRoles = [UserRoles.ADMIN, UserRoles.CLUB_ADMIN, UserRoles.CAREER_ADMIN, UserRoles.SUPER_ADMIN];
+      const selectedRole = formData.role as UserRoles;
       const normalizedCode = formData.accessCode.trim();
-      const selectedRole = formData.role;
 
       console.log('Registration Profile:', { role: selectedRole, email: formData.email.trim() });
 
-      if (restrictedRoles.includes(selectedRole as UserRoles) && normalizedCode !== 'TITAN2025') {
-        console.warn('REGISTRATION BLOCKED: Invalid Access Code for restricted role.');
-        throw new Error('Departmental Authorization Failed. Please verify your Secret Access Code.');
+      if (selectedRole === UserRoles.SUPER_ADMIN) {
+        if (normalizedCode !== 'ARSALAN2025') {
+          console.warn('REGISTRATION BLOCKED: Invalid Super Admin passkey.');
+          throw new Error('Super Admin Passkey Invalid. Authorization Denied.');
+        }
+      } else if ([UserRoles.ADMIN, UserRoles.CLUB_ADMIN, UserRoles.CAREER_ADMIN].includes(selectedRole)) {
+        if (normalizedCode !== 'TITAN2025') {
+          console.warn('REGISTRATION BLOCKED: Invalid Admin passkey.');
+          throw new Error('Admin Passkey Invalid. Authorization Denied.');
+        }
       }
 
       // Start the signup process

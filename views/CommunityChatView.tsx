@@ -35,7 +35,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
     const msg: ChatMessage = {
       id: Date.now().toString(),
       senderId: user.id,
-      senderName: user.role === UserRoles.STUDENT ? 'Anonymous Titan' : user.name,
+      senderName: user.name, // Saved dynamically so admins can see it, masked on render for others
       senderRole: user.role,
       text: text,
       timestamp: new Date().toISOString(),
@@ -51,7 +51,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
     const msg: ChatMessage = {
       id: Date.now().toString(),
       senderId: user.id,
-      senderName: user.role === UserRoles.STUDENT ? 'Anonymous Titan' : user.name,
+      senderName: user.name, // Saved dynamically so admins can see it, masked on render for others
       senderRole: user.role,
       text: `📊 POLL: ${pollData.question}`,
       timestamp: new Date().toISOString(),
@@ -154,16 +154,29 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
         <div className="flex-grow p-8 overflow-y-auto space-y-6">
           {messages.map((m) => {
             const isMe = m.senderId === user.id;
+            const isAuthorizedAdmin = user.role === UserRoles.SUPER_ADMIN;
+
+            // Mask the name on render for non-admins, unless it's their own message
+            let displayRole = m.senderRole || UserRoles.STUDENT;
+            let displayName = m.senderName;
+
+            if (!isAuthorizedAdmin && !isMe && displayRole === UserRoles.STUDENT) {
+              displayName = 'Anonymous Titan';
+            }
+
             return (
               <div key={m.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] rounded-3xl p-6 shadow-sm relative ${isMe ? 'bg-maroon-800 text-white rounded-tr-none' : 'bg-white border border-gray-200 rounded-tl-none'}`}>
                   <div className="flex items-center justify-between gap-10 mb-3">
-                    {m.senderId ? (
-                      <Link to={`/profile/${m.senderId}`} className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60 hover:opacity-100 hover:text-maroon-300 transition-all">
-                        {m.senderName}
+                    {m.senderId && isAuthorizedAdmin ? (
+                      <Link to={`/profile/${m.senderId}`} className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60 hover:opacity-100 hover:text-maroon-300 transition-all flex flex-col gap-1">
+                        <span>{displayName}</span>
+                        <span className="text-[7px] text-maroon-500">{m.senderId.substring(0, 8)}...</span>
                       </Link>
                     ) : (
-                      <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60">{m.senderName}</span>
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60">
+                        {displayName} {isAuthorizedAdmin && <span className="text-red-500 ml-2">(ID: {m.senderId?.substring(0, 8)})</span>}
+                      </span>
                     )}
                     <span className="text-[8px] font-bold opacity-40 uppercase">{formatTime(m.timestamp)}</span>
                   </div>
