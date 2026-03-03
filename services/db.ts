@@ -201,7 +201,7 @@ export const db = {
 
   // --- Global Chat ---
   getGlobalChat: async () => {
-    const { rows } = await turso.execute('SELECT * FROM global_chat ORDER BY timestamp ASC LIMIT 200');
+    const { rows } = await turso.execute('SELECT * FROM (SELECT * FROM global_chat ORDER BY id DESC LIMIT 200) ORDER BY id ASC');
     return rows.map((msg: any) => ({
       id: String(msg.id),
       senderId: msg.sender_id,
@@ -218,7 +218,8 @@ export const db = {
       sql: `INSERT INTO global_chat (sender_id, sender_name, sender_role, text, club_id, poll, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       args: [msg.senderId || null, msg.senderName || '', msg.senderRole || '', msg.text,
       msg.clubId || '', msg.poll ? JSON.stringify(msg.poll) : null,
-      msg.timestamp || new Date().toISOString()]
+      new Date().toISOString() // Always use ISO for server-side consistency
+      ]
     });
   },
 

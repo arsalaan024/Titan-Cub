@@ -21,6 +21,14 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const formatTime = (isoString: string) => {
+    try {
+      return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return isoString;
+    }
+  };
+
   const handleSend = () => {
     if (!text.trim() || !user) return;
     const msg: ChatMessage = {
@@ -29,7 +37,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
       senderName: user.role === UserRoles.STUDENT ? 'Anonymous Titan' : user.name,
       senderRole: user.role,
       text: text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
     };
     onSendMessage(msg);
     setText('');
@@ -45,7 +53,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
       senderName: user.role === UserRoles.STUDENT ? 'Anonymous Titan' : user.name,
       senderRole: user.role,
       text: `📊 POLL: ${pollData.question}`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
       poll: {
         question: pollData.question,
         options: validOptions.map(opt => ({ text: opt, votes: Math.floor(Math.random() * 5) }))
@@ -72,7 +80,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
       <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col flex-grow relative">
         <div className="flex-grow p-8 overflow-y-auto space-y-6">
           {messages.map((m) => {
-            const isMe = m.senderName === (user.role === UserRoles.STUDENT ? 'Anonymous Titan' : user.name);
+            const isMe = m.senderId === user.id;
             return (
               <div key={m.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] rounded-3xl p-6 shadow-sm relative ${isMe ? 'bg-maroon-800 text-white rounded-tr-none' : 'bg-white border border-gray-200 rounded-tl-none'}`}>
@@ -84,7 +92,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
                     ) : (
                       <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60">{m.senderName}</span>
                     )}
-                    <span className="text-[8px] font-bold opacity-40 uppercase">{m.timestamp}</span>
+                    <span className="text-[8px] font-bold opacity-40 uppercase">{formatTime(m.timestamp)}</span>
                   </div>
                   <p className="text-sm font-medium leading-relaxed">{m.text}</p>
                   {(() => {
