@@ -106,18 +106,31 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
               />
               <div className="space-y-2">
                 {pollData.options.map((opt, i) => (
-                  <input
-                    key={i}
-                    type="text"
-                    placeholder={`Option ${i + 1}`}
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-maroon-800/20 px-6 py-3 rounded-xl outline-none font-medium text-gray-700 text-sm"
-                    value={opt}
-                    onChange={(e) => {
-                      const newOpts = [...pollData.options];
-                      newOpts[i] = e.target.value;
-                      setPollData({ ...pollData, options: newOpts });
-                    }}
-                  />
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder={`Option ${i + 1}`}
+                      className="w-full bg-gray-50 border-2 border-transparent focus:border-maroon-800/20 px-6 py-3 rounded-xl outline-none font-medium text-gray-700 text-sm"
+                      value={opt}
+                      onChange={(e) => {
+                        const newOpts = [...pollData.options];
+                        newOpts[i] = e.target.value;
+                        setPollData({ ...pollData, options: newOpts });
+                      }}
+                    />
+                    {pollData.options.length > 2 && (
+                      <button
+                        onClick={() => {
+                          const newOpts = pollData.options.filter((_, idx) => idx !== i);
+                          setPollData({ ...pollData, options: newOpts });
+                        }}
+                        className="text-gray-300 hover:text-red-500 w-10 h-10 flex items-center justify-center rounded-xl transition-colors bg-gray-50 flex-shrink-0"
+                        title="Remove Option"
+                      >
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
+                    )}
+                  </div>
                 ))}
                 <button
                   onClick={() => setPollData({ ...pollData, options: [...pollData.options, ''] })}
