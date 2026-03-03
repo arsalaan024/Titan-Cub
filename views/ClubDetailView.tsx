@@ -111,7 +111,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
     };
 
     poll(); // Initial fetch
-    const interval = setInterval(poll, 3000);
+    const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
   }, [clubId, activeTab]);
 
@@ -477,10 +477,10 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                                           onClick={() => handleVote(m.id!, idx)}
                                           disabled={hasVoted}
                                           className={`w-full text-left relative overflow-hidden rounded-xl p-3 text-xs font-semibold transition-all border ${localVotes[m.id!] === idx
-                                              ? 'border-gray-900 bg-white text-gray-900 shadow-md'
-                                              : isMe
-                                                ? 'border-white/20 hover:border-white/40 bg-white/5'
-                                                : 'border-transparent hover:border-gray-200 bg-black/5'
+                                            ? 'border-gray-900 bg-white text-gray-900 shadow-md'
+                                            : isMe
+                                              ? 'border-white/20 hover:border-white/40 bg-white/5'
+                                              : 'border-transparent hover:border-gray-200 bg-black/5'
                                             }`}
                                         >
                                           <div className={`relative z-10 flex justify-between items-center ${isMe && localVotes[m.id!] === idx ? 'text-gray-900' : ''}`}>
