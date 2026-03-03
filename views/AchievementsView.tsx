@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Achievement, User, UserRoles, AchievementPost, Activity, PortalSettings } from '../types';
 import { db } from '../services/db';
 import MediaInput from '../components/MediaInput';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface AchievementsViewProps {
   user: User | null;
@@ -34,7 +35,7 @@ const AutoCarousel: React.FC<{ photos: string[] }> = ({ photos }) => {
       {photos.map((src, i) => (
         <img
           key={i}
-          src={src}
+          src={formatMediaLink(src)}
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-[2000ms] ease-in-out ${i === index ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-110 z-0 pointer-events-none'
             }`}
           alt="Manifest Proof"
@@ -247,7 +248,7 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
               {filteredAchievements.map((ach) => (
                 <div key={ach.id} className="group bg-white rounded-[3rem] overflow-hidden shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-500 flex flex-col h-[500px]">
                   <div className="relative h-[72%] bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
-                    <img src={ach.certificateUrl} className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-[2s]" alt="" />
+                    <img src={formatMediaLink(ach.certificateUrl)} className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-[2s]" alt="" />
                     {canManage && (
                       <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                         <button onClick={(e) => handleOfficialEdit(e, ach)} className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-all"><i className="fa-solid fa-pen"></i></button>
@@ -381,7 +382,7 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
                 <div className="grid grid-cols-4 gap-4">
                   {(postData.photos || []).map((p, i) => (
                     <div key={i} className="relative aspect-square rounded-xl overflow-hidden group shadow-md">
-                      <img src={p} className="w-full h-full object-cover" alt="" />
+                      <img src={formatMediaLink(p)} className="w-full h-full object-cover" alt="" />
                       <button onClick={() => setPostData({ ...postData, photos: postData.photos?.filter((_, idx) => idx !== i) })} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><i className="fa-solid fa-trash"></i></button>
                     </div>
                   ))}

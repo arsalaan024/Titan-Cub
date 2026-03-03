@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { db } from '../services/db';
 import { Achievement, Activity, Club } from '../types';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface PublicProfileViewProps {
     clubs: Club[];
@@ -67,7 +68,7 @@ const PublicProfileView: React.FC<PublicProfileViewProps> = ({ clubs, activities
                         {/* Avatar */}
                         <div className="w-24 h-24 rounded-3xl overflow-hidden ring-4 ring-white/20 shadow-2xl flex-shrink-0">
                             {profile.photoUrl ? (
-                                <img src={profile.photoUrl} alt={profile.displayName} className="w-full h-full object-cover" />
+                                <img src={formatMediaLink(profile.photoUrl)} alt={profile.displayName} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full bg-white/15 flex items-center justify-center text-white font-black text-3xl">
                                     {initials}
@@ -128,7 +129,7 @@ const PublicProfileView: React.FC<PublicProfileViewProps> = ({ clubs, activities
                         <div className="grid sm:grid-cols-2 gap-4">
                             {myClubs.map(club => (
                                 <div key={club.id} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50">
-                                    {club.logo ? <img src={club.logo} alt="" className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-[#800000]/10 flex items-center justify-center text-[#800000] font-black">{club.name[0]}</div>}
+                                    {club.logo ? <img src={formatMediaLink(club.logo)} alt="" className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-[#800000]/10 flex items-center justify-center text-[#800000] font-black">{club.name[0]}</div>}
                                     <div>
                                         <div className="font-black text-gray-900 text-sm">{club.name}</div>
                                         <div className="text-gray-400 text-xs">{club.tagline}</div>

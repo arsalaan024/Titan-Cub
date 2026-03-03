@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, User, UserRoles, Club, PortalSettings } from '../types';
 import MediaInput from '../components/MediaInput';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface ActivitiesViewProps {
   activities: Activity[];
@@ -201,7 +202,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                 <div className="grid grid-cols-4 gap-2 mb-2">
                   {formData.photos.map((p, i) => (
                     <div key={i} className="relative aspect-square rounded-xl overflow-hidden group border border-gray-100">
-                      <img src={p} className="w-full h-full object-cover" alt="" />
+                      <img src={formatMediaLink(p)} className="w-full h-full object-cover" alt="" />
                       <button onClick={() => setFormData(prev => ({ ...prev, photos: prev.photos.filter((_, idx) => idx !== i) }))} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i className="fa-solid fa-trash"></i></button>
                     </div>
                   ))}

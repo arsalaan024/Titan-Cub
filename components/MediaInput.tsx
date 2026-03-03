@@ -11,24 +11,7 @@ interface MediaInputProps {
     className?: string;
 }
 
-const formatStorageLink = (link: string): string => {
-    if (!link) return '';
-    try {
-        const url = new URL(link);
-        // Google Drive conversion
-        if (url.hostname.includes('drive.google.com')) {
-            const fileId = url.pathname.split('/d/')[1]?.split('/')[0] || url.searchParams.get('id');
-            if (fileId) return `https://drive.google.com/uc?export=view&id=${fileId}`;
-        }
-        // Dropbox conversion
-        if (url.hostname.includes('dropbox.com')) {
-            return link.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '').replace('&dl=0', '');
-        }
-    } catch (e) {
-        // Not a URL, return as is (could be base64)
-    }
-    return link;
-};
+import { formatMediaLink } from '../services/mediaUtils';
 
 const MediaInput: React.FC<MediaInputProps> = ({
     label,
@@ -42,7 +25,7 @@ const MediaInput: React.FC<MediaInputProps> = ({
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const displayValue = formatStorageLink(value);
+    const displayValue = formatMediaLink(value);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -98,9 +81,16 @@ const MediaInput: React.FC<MediaInputProps> = ({
                         placeholder={placeholder || `Paste ${type} link (Google Drive, Dropbox, etc.)`}
                         className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-semibold outline-none focus:border-[#800000]/20 transition-all placeholder:text-gray-300 shadow-inner"
                     />
+                    {value && (
+                        <div className="absolute right-16 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
+                                {type === 'image' && <img src={displayValue} alt="Preview" className="w-full h-full object-cover" />}
+                                {type !== 'image' && <div className="w-full h-full flex items-center justify-center text-[10px] text-[#800000]"><i className={`fa-solid ${getIcon()}`}></i></div>}
+                            </div>
+                        </div>
+                    )}
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none opacity-40 group-focus-within:opacity-100 transition-opacity">
                         <i className="fa-brands fa-google-drive text-[#800000]"></i>
-                        <span className="text-[8px] font-black uppercase tracking-tighter">Link Mode</span>
                     </div>
                 </div>
             ) : (

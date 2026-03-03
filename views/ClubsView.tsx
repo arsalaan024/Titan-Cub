@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Club, User, UserRoles, PortalSettings } from '../types';
 import MediaInput from '../components/MediaInput';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface ClubsViewProps {
   clubs: Club[];
@@ -123,7 +124,7 @@ const ClubsView: React.FC<ClubsViewProps> = ({ clubs, user, onAddClub, onDeleteC
               className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 flex flex-col h-full relative cursor-pointer"
             >
               <div className="relative h-64 overflow-hidden">
-                <img src={club.bannerImage} alt={club.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                <img src={formatMediaLink(club.bannerImage)} alt={club.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                 <div className="absolute inset-0 bg-gradient-to-t from-maroon-950/95 via-maroon-900/20 to-transparent"></div>
 
                 {isAuthorizedAdmin && (
@@ -138,7 +139,7 @@ const ClubsView: React.FC<ClubsViewProps> = ({ clubs, user, onAddClub, onDeleteC
 
                 <div className="absolute bottom-8 left-8 flex items-center gap-5">
                   <div className="w-16 h-16 rounded-2xl bg-white p-2 shadow-2xl flex-shrink-0">
-                    <img src={club.logo} alt="Logo" className="w-full h-full object-contain" />
+                    <img src={formatMediaLink(club.logo)} alt="Logo" className="w-full h-full object-contain" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-white font-black text-2xl tracking-tight uppercase truncate">{club.name}</h3>

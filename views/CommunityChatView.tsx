@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User, ChatMessage, UserRoles } from '../types';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface CommunityChatViewProps {
   user: User | null;
@@ -87,26 +88,16 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
                   </div>
                   <p className="text-sm font-medium leading-relaxed">{m.text}</p>
                   {(() => {
-                    const driveRegex = /(https:\/\/drive\.google\.com\/file\/d\/([^\/\?]+))/;
-                    const dropboxRegex = /(https:\/\/www\.dropbox\.com\/s\/([^\/\?]+))/;
+                    const driveRegex = /https:\/\/drive\.google\.com\/file\/d\/([^\/\?\s]+)/;
+                    const dropboxRegex = /https:\/\/www\.dropbox\.com\/s\/([^\/\?\s]+)/;
+                    const generalImgRegex = /https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg)/i;
 
-                    const driveMatch = m.text.match(driveRegex);
-                    const dropboxMatch = m.text.match(dropboxRegex);
+                    const match = m.text.match(driveRegex) || m.text.match(dropboxRegex) || m.text.match(generalImgRegex);
 
-                    if (driveMatch) {
-                      const fileId = driveMatch[2];
-                      const embedUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                    if (match) {
+                      const embedUrl = formatMediaLink(match[0]);
                       return (
-                        <div className="mt-3 rounded-xl overflow-hidden border border-white/20 shadow-sm">
-                          <img src={embedUrl} alt="Shared Asset" className="max-w-full h-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                        </div>
-                      );
-                    }
-
-                    if (dropboxMatch) {
-                      const embedUrl = dropboxMatch[1].replace('dl=0', 'raw=1');
-                      return (
-                        <div className="mt-3 rounded-xl overflow-hidden border border-white/20 shadow-sm">
+                        <div className="mt-3 rounded-xl overflow-hidden border border-white/20 shadow-sm bg-black/5">
                           <img src={embedUrl} alt="Shared Asset" className="max-w-full h-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
                         </div>
                       );

@@ -3,6 +3,7 @@ import { useParams, Navigate, Link } from 'react-router-dom';
 import { User, Club, Activity, UserRoles, Announcement, ChatMessage, PortalSettings } from '../types';
 import { db } from '../services/db';
 import MediaInput from '../components/MediaInput';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface ClubDetailViewProps {
   user: User | null;
@@ -170,7 +171,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
   return (
     <div className="bg-white min-h-screen relative pb-24">
       <div className="relative h-[320px] md:h-[480px] overflow-hidden">
-        <img src={club.bannerImage} className="w-full h-full object-cover" alt={club.name} />
+        <img src={formatMediaLink(club.bannerImage)} className="w-full h-full object-cover" alt={club.name} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
 
         <div className="absolute top-4 right-4 md:top-8 md:right-8 flex gap-2 z-50">
@@ -188,7 +189,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
         <div className="absolute bottom-12 left-12 right-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="flex items-center gap-8">
             <div className="w-24 h-24 bg-white rounded-3xl p-3 shadow-2xl shrink-0">
-              <img src={club.logo} className="w-full h-full object-contain" alt="Logo" />
+              <img src={formatMediaLink(club.logo)} className="w-full h-full object-contain" alt="Logo" />
             </div>
             <div className="text-white">
               <h2 className="text-6xl font-black tracking-tighter uppercase leading-none mb-3">{club.name}</h2>
@@ -261,7 +262,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                           )}
                           <div className="flex gap-10">
                             <div className="w-1/3 aspect-square rounded-[2.5rem] overflow-hidden bg-gray-200">
-                              <img src={act.photos[0] || 'https://via.placeholder.com/400'} className="w-full h-full object-cover" alt="" />
+                              <img src={formatMediaLink(act.photos[0] || 'https://via.placeholder.com/400')} className="w-full h-full object-cover" alt="" />
                             </div>
                             <div className="flex-grow">
                               <span className="text-[10px] font-black uppercase tracking-widest mb-3 block" style={{ color: themeColor }}>{act.date}</span>
@@ -287,7 +288,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                     {clubMembers.map(m => (
                       <Link key={m.clerkId} to={`/profile/${m.clerkId}`} className="group bg-white border border-gray-100 rounded-[2.5rem] p-6 text-center hover:shadow-2xl transition-all">
                         <div className="w-20 h-20 rounded-2xl mx-auto overflow-hidden mb-4 ring-4 ring-transparent group-hover:ring-[#800000]/10 transition-all">
-                          {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 font-black text-2xl">{m.displayName?.[0]}</div>}
+                          {m.photoUrl ? <img src={formatMediaLink(m.photoUrl)} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 font-black text-2xl">{m.displayName?.[0]}</div>}
                         </div>
                         <h4 className="text-xs font-black uppercase tracking-tight text-gray-900 line-clamp-1">{m.displayName}</h4>
                         <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">{m.role}</p>
@@ -352,7 +353,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6">Faculty Supervisor</h4>
                   <div className="flex items-center gap-6">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                      <img src={club.facultyPhoto || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt="" />
+                      <img src={formatMediaLink(club.facultyPhoto || 'https://via.placeholder.com/150')} className="w-full h-full object-cover" alt="" />
                     </div>
                     <div>
                       <h5 className="font-black text-gray-900 uppercase tracking-tighter">{club.facultyName}</h5>
@@ -390,7 +391,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                 <div className="grid grid-cols-4 gap-4">
                   {activityForm.photos.map((p, i) => (
                     <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group">
-                      <img src={p} className="w-full h-full object-cover" />
+                      <img src={formatMediaLink(p)} className="w-full h-full object-cover" />
                       <button onClick={() => setActivityForm({ ...activityForm, photos: activityForm.photos.filter((_, idx) => idx !== i) })} className="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i className="fa-solid fa-trash"></i></button>
                     </div>
                   ))}
