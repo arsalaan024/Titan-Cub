@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { User, Club, Activity, Achievement, AchievementPost } from '../types';
 import { useUser } from '@clerk/clerk-react';
 
@@ -14,6 +14,22 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({ user, clubs, activities, achievements, posts }) => {
     const { user: clerkUser } = useUser();
     const [activeTab, setActiveTab] = useState<'overview' | 'clubs' | 'activities' | 'achievements'>('overview');
+    const [uploading, setUploading] = useState(false);
+    const photoInputRef = useRef<HTMLInputElement>(null);
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !clerkUser) return;
+        setUploading(true);
+        try {
+            await clerkUser.setProfileImage({ file });
+        } catch (err: any) {
+            alert('Failed to upload photo: ' + (err?.message || err));
+        } finally {
+            setUploading(false);
+            if (photoInputRef.current) photoInputRef.current.value = '';
+        }
+    };
 
     if (!user) {
         return (
@@ -62,8 +78,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, clubs, activities, achi
                 <div className="relative bg-gradient-to-br from-[#800000] via-[#6b0000] to-[#4a0000] rounded-[2.5rem] overflow-hidden mb-8 shadow-2xl">
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
                     <div className="relative p-10 md:p-14 flex flex-col md:flex-row items-center gap-8">
-                        {/* Avatar */}
-                        <div className="relative">
+                        {/* Avatar with upload overlay */}
+                        <div className="relative group cursor-pointer" onClick={() => !uploading && photoInputRef.current?.click()}>
                             {clerkUser?.imageUrl ? (
                                 <img src={clerkUser.imageUrl} alt={user.name} className="w-28 h-28 rounded-3xl object-cover ring-4 ring-white/20 shadow-2xl" />
                             ) : (
@@ -71,7 +87,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, clubs, activities, achi
                                     {initials}
                                 </div>
                             )}
+                            {/* Camera overlay */}
+                            <div className={`absolute inset-0 rounded-3xl flex items-center justify-center bg-black/50 transition-opacity ${uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                {uploading ? (
+                                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <span className="text-2xl">📷</span>
+                                )}
+                            </div>
                             <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-400 rounded-full border-4 border-[#800000]" />
+                            {/* Hidden file input */}
+                            <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                         </div>
 
                         {/* Info */}
