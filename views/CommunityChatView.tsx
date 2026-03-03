@@ -154,7 +154,7 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
         <div className="flex-grow p-8 overflow-y-auto space-y-6">
           {messages.map((m) => {
             const isMe = m.senderId === user.id;
-            const isAuthorizedAdmin = user.role === UserRoles.ADMIN || user.role === UserRoles.SUPER_ADMIN;
+            const isAuthorizedAdmin = user.role === UserRoles.SUPER_ADMIN;
 
             // Mask the name on render for non-admins, unless it's their own message
             let displayRole = m.senderRole || UserRoles.STUDENT;

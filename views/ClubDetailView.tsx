@@ -465,7 +465,7 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
                     <div className="flex-grow overflow-y-auto space-y-6 pr-4 mb-6 scroll-hide">
                       {clubChats.map(m => {
                         const isMe = m.senderId === user?.id;
-                        const isAuthorizedAdmin = user?.role === UserRoles.ADMIN || user?.role === UserRoles.SUPER_ADMIN;
+                        const isAuthorizedAdmin = user?.role === UserRoles.SUPER_ADMIN;
 
                         let displayRole = m.senderRole || UserRoles.STUDENT;
                         let displayName = m.senderName;
