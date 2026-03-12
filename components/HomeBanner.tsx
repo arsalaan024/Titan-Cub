@@ -99,7 +99,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
   );
 
   return (
-    <section className="relative h-[50vh] md:h-[55vh] overflow-hidden group">
+    <section className="relative h-[60vh] md:h-[75vh] bg-maroon-950 overflow-hidden group">
       {banners.length > 0 ? (
         <>
           {banners.map((banner, index) => (
@@ -109,9 +109,13 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
                 index === currentIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'
               }`}
             >
+              {/* Blurred background for premium look */}
+              <div className="absolute inset-0 z-0">
+                <img src={banner.imageUrl} className="w-full h-full object-cover blur-2xl opacity-50 scale-110" alt="" />
+              </div>
               <img
                 src={banner.imageUrl}
-                className="w-full h-full object-cover"
+                className="relative w-full h-full object-contain object-center z-0"
                 alt={banner.title || 'Banner'}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
