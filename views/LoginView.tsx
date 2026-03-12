@@ -35,14 +35,17 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       const result = await signIn.create({
         identifier: email.trim(),
         password: password,
+        strategy: 'password',
       });
+
+      console.log('SignIn Result:', result);
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         onLogin();
         navigate('/');
       } else {
-        setError('Login incomplete. Please try again or contact support.');
+        setError(`Login incomplete (Status: ${result.status}). You likely need to verify your email first!`);
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage
@@ -98,10 +101,10 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 type={showPassword ? "text" : "password"}
                 className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 font-semibold outline-none focus:ring-0 focus:border-[#800000] text-gray-900 transition-all placeholder-gray-300 pr-14"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="current-password"
               />
               <button
                 type="button"

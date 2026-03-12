@@ -176,7 +176,7 @@ const RegisterView: React.FC = () => {
                   id="regEmail"
                   type="email"
                   className="w-full bg-gray-50 border-none rounded-[1.5rem] px-8 py-6 font-bold outline-none focus:ring-4 focus:ring-maroon-800/10 text-xl transition-all"
-                  placeholder="name@university.edu"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
@@ -191,6 +191,7 @@ const RegisterView: React.FC = () => {
                   type={showPassword ? "text" : "password"}
                   className="w-full bg-gray-50 border-none rounded-[1.5rem] px-8 py-6 font-bold outline-none focus:ring-4 focus:ring-maroon-800/10 text-xl transition-all pr-16"
                   placeholder="••••••••"
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
@@ -236,11 +237,14 @@ const RegisterView: React.FC = () => {
                   Departmental Secret Authorization Code
                 </label>
                 <div className="relative group">
-                  <input
+                   <input
                     id="authCode"
-                    type={showAccessCode ? "text" : "password"}
+                    type="text"
+                    style={!showAccessCode ? { WebkitTextSecurity: 'disc' } as any : {}}
                     className="w-full bg-maroon-50 border-2 border-maroon-100 rounded-[1.5rem] px-8 py-6 font-black placeholder-maroon-200 focus:outline-none focus:border-maroon-800 transition-all text-xl pr-16"
                     placeholder="Enter departmental secret code"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={formData.accessCode}
                     onChange={(e) => setFormData({ ...formData, accessCode: e.target.value })}
                   />
