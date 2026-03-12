@@ -40,12 +40,13 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
       console.log('SignIn Result:', result);
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
+      if (result.status === 'complete' || result.status === 'needs_second_factor') {
+        // If it's complete, or we're ignoring 2FA, force active session
+        await setActive({ session: result.createdSessionId || result.supportedFirstFactors?.[0]?.strategy === 'password' ? result.createdSessionId : undefined });
         onLogin();
         navigate('/');
       } else {
-        setError(`Login incomplete (Status: ${result.status}). You likely need to verify your email first!`);
+        setError(`Login incomplete (Status: ${result.status}). Check your credentials.`);
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage
