@@ -153,6 +153,15 @@ export async function initSchema() {
       status TEXT DEFAULT 'PENDING',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(club_id, user_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS home_banners (
+      id TEXT PRIMARY KEY,
+      image_url TEXT NOT NULL,
+      title TEXT,
+      subtitle TEXT,
+      link TEXT,
+      display_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 
@@ -160,4 +169,40 @@ export async function initSchema() {
     await turso.execute(sql);
   }
   console.log('✅ Turso schema initialized');
+
+  // Seed sample banners if empty
+  const { rows: bannerRows } = await turso.execute('SELECT count(*) as count FROM home_banners');
+  if (bannerRows[0] && (bannerRows[0] as any).count === 0) {
+    const sampleBanners = [
+      {
+        id: 'sample-1',
+        image_url: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?auto=format&fit=crop&q=80&w=1920',
+        title: 'TITAN CLUB',
+        subtitle: 'Commanding Excellence in Student Innovation',
+        display_order: 0
+      },
+      {
+        id: 'sample-2',
+        image_url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1920',
+        title: 'CAMPUS LIFE',
+        subtitle: 'Experience the Vibrancy of Titan Academy',
+        display_order: 1
+      },
+      {
+        id: 'sample-3',
+        image_url: 'https://images.unsplash.com/photo-1544654803-b69110bb8154?auto=format&fit=crop&q=80&w=1920',
+        title: 'GLOBAL CONNECT',
+        subtitle: 'Building the Future of Tech Communities',
+        display_order: 2
+      }
+    ];
+
+    for (const banner of sampleBanners) {
+      await turso.execute({
+        sql: 'INSERT INTO home_banners (id, image_url, title, subtitle, display_order) VALUES (?, ?, ?, ?, ?)',
+        args: [banner.id, banner.image_url, banner.title, banner.subtitle, banner.display_order]
+      });
+    }
+    console.log('✅ Sample banners seeded');
+  }
 }

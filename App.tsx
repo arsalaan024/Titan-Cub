@@ -20,6 +20,8 @@ import RegisterView from './views/RegisterView';
 import DashboardView from './views/DashboardView';
 import ProfileView from './views/ProfileView';
 import PublicProfileView from './views/PublicProfileView';
+import PrivacyPolicyView from './views/PrivacyPolicyView';
+import HelpCenterView from './views/HelpCenterView';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -255,6 +257,8 @@ const App: React.FC = () => {
               path="/dashboard"
               element={user?.role === UserRoles.SUPER_ADMIN ? <DashboardView /> : <Navigate to="/" />}
             />
+            <Route path="/privacy-policy" element={<PrivacyPolicyView />} />
+            <Route path="/help-center" element={<HelpCenterView />} />
           </Routes>
         </main>
         <Footer />

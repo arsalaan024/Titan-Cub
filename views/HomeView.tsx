@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../services/db';
 import { User, UserRoles, Announcement } from '../types';
+import HomeBanner from '../components/HomeBanner';
 
 interface HomeViewProps {
   user: User | null;
@@ -30,53 +31,9 @@ const HomeView: React.FC<HomeViewProps> = ({ user, announcements: allAnnouncemen
 
   return (
     <div className="flex flex-col relative">
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] md:min-h-[95vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-maroon-950">
-          <img
-            src="https://images.unsplash.com/photo-1541339907198-e08756ebafe3?auto=format&fit=crop&q=80&w=1920"
-            className="w-full h-full object-cover opacity-40 mix-blend-overlay"
-            alt="Campus"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-maroon-950/80 to-transparent"></div>
-        </div>
+      {/* Hero Banner Section */}
+      <HomeBanner user={user} />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-white">
-          <div className="inline-block bg-white/10 backdrop-blur-md px-4 py-1.5 md:px-6 md:py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.4em] mb-8 md:mb-10 border border-white/20 animate-fade-in shadow-xl">Titan Parent Organization</div>
-          <h1 className="text-5xl sm:text-7xl md:text-[10rem] font-black mb-8 md:mb-10 tracking-tighter leading-[0.9] md:leading-[0.8] animate-slide-up">
-            COMMAND <br /><span className="text-maroon-500">EXCELLENCE.</span>
-          </h1>
-          <p className="text-lg md:text-3xl text-maroon-100/70 max-w-3xl mb-12 md:mb-16 leading-relaxed font-bold animate-slide-up [animation-delay:100ms]">
-            The strategic nexus for student-led innovation, professional growth, and multi-club governance.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 md:gap-8 animate-slide-up [animation-delay:200ms]">
-            <Link to="/clubs" className="px-10 py-5 md:px-14 md:py-6 bg-white text-maroon-900 rounded-[1.5rem] md:rounded-[2rem] font-black hover:bg-maroon-50 transition-all shadow-[0_20px_50px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 uppercase tracking-widest text-xs md:text-sm text-center">Explore Sub-Clubs</Link>
-            <Link to="/activities" className="px-10 py-5 md:px-14 md:py-6 border-2 border-white/30 text-white rounded-[1.5rem] md:rounded-[2rem] font-black hover:bg-white/10 transition-all uppercase tracking-widest text-xs md:text-sm backdrop-blur-sm text-center">Activity Hub</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Section */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            {[
-              { icon: 'fa-layer-group', title: 'Club Governance', desc: 'Standardized management for specialized student chapters across engineering, arts, and innovation.' },
-              { icon: 'fa-briefcase', title: 'Career Pathways', desc: 'Direct pipelines to industry leading placements, internships, and hackathon opportunities.' },
-              { icon: 'fa-shield-halved', title: 'Verified Success', desc: 'Blockchain-ready activity tracking and hall of fame for student achievements and certifications.' }
-            ].map((feature, i) => (
-              <div key={i} className="p-8 md:p-10 bg-gray-50 rounded-[2rem] md:rounded-[3rem] border border-gray-100 hover:shadow-xl transition-all group">
-                <div className="w-14 h-14 md:w-16 md:h-16 bg-maroon-800 text-white rounded-2xl flex items-center justify-center text-xl md:text-2xl mb-6 md:mb-8 shadow-lg group-hover:rotate-6 transition-transform">
-                  <i className={`fa-solid ${feature.icon}`}></i>
-                </div>
-                <h3 className="text-xl md:text-2xl font-black mb-3 md:mb-4 uppercase tracking-tighter">{feature.title}</h3>
-                <p className="text-gray-500 font-medium text-sm md:text-base leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ANNOUNCEMENT WIDGET */}
       <div className="fixed bottom-6 right-4 sm:bottom-10 sm:right-10 z-[100] flex flex-col items-end gap-4 md:gap-6">

@@ -23,6 +23,9 @@ const GalleryView: React.FC<GalleryViewProps> = ({ activities, clubs }) => {
   const initialClub = searchParams.get('clubId') || 'all';
 
   const [clubFilter, setClubFilter] = useState(initialClub);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -54,9 +57,22 @@ const GalleryView: React.FC<GalleryViewProps> = ({ activities, clubs }) => {
 
   // Main grid filtering
   const filteredPhotos = useMemo(() => {
-    if (clubFilter === 'all') return allPhotos;
-    return allPhotos.filter(p => p.clubId === clubFilter);
-  }, [allPhotos, clubFilter]);
+    return allPhotos.filter(p => {
+      const matchClub = clubFilter === 'all' || p.clubId === clubFilter;
+      const matchSearch = searchTerm === '' || 
+        p.activityName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        p.clubName.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const photoDate = new Date(p.date);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      
+      const matchStart = !start || photoDate >= start;
+      const matchEnd = !end || photoDate <= end;
+
+      return matchClub && matchSearch && matchStart && matchEnd;
+    });
+  }, [allPhotos, clubFilter, searchTerm, startDate, endDate]);
 
   // The currently viewed photo object
   const selectedPhoto = useMemo(() =>
@@ -132,38 +148,74 @@ const GalleryView: React.FC<GalleryViewProps> = ({ activities, clubs }) => {
   }, [selectedPhotoId, currentClubPhotos, isFullscreen]);
 
   return (
-    <div className="py-24 bg-gray-50 min-h-screen">
+    <div className="py-12 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header Console */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-20 border-l-8 border-maroon-800 pl-8">
-          <div>
-            <h2 className="text-6xl font-black text-gray-900 tracking-tighter uppercase mb-4 leading-none">Impact <br />Gallery</h2>
-            <p className="text-gray-500 text-xl font-medium max-w-xl">A visual manifest of Titan excellence, documenting every milestone across our chapters.</p>
+        <div className="flex flex-col gap-6 mb-10">
+          <div className="border-l-4 border-maroon-800 pl-6">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight uppercase mb-2 leading-none">Titan <br />Visions</h2>
+            <p className="text-gray-500 text-sm font-medium max-w-md uppercase tracking-wider">Visual manifest of excellence across all chapters.</p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => setClubFilter('all')}
-              className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 ${clubFilter === 'all'
-                ? 'bg-maroon-800 border-maroon-800 text-white shadow-xl scale-105'
-                : 'bg-white border-gray-100 text-gray-400 hover:border-maroon-200 hover:text-maroon-800'
-                }`}
-            >
-              All Chapters
-            </button>
-            {clubs.map(c => (
+          <div className="space-y-8">
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 relative">
+                <i className="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input 
+                  type="text" 
+                  placeholder="Search activities or chapters..." 
+                  className="w-full pl-14 pr-8 py-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-sm focus:ring-4 focus:ring-maroon-800/5 outline-none font-bold text-gray-900 placeholder:text-gray-300"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-grow relative">
+                   <label className="absolute -top-3 left-6 px-2 bg-gray-50 text-[9px] font-black uppercase tracking-widest text-gray-400">From</label>
+                   <input 
+                    type="date" 
+                    className="w-full px-6 py-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-sm outline-none font-bold"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="flex-grow relative">
+                   <label className="absolute -top-3 left-6 px-2 bg-gray-50 text-[9px] font-black uppercase tracking-widest text-gray-400">To</label>
+                   <input 
+                    type="date" 
+                    className="w-full px-6 py-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-sm outline-none font-bold"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               <button
-                key={c.id}
-                onClick={() => setClubFilter(c.id)}
-                className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 ${clubFilter === c.id
+                onClick={() => setClubFilter('all')}
+                className={`px-8 py-4 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border-2 ${clubFilter === 'all'
                   ? 'bg-maroon-800 border-maroon-800 text-white shadow-xl scale-105'
                   : 'bg-white border-gray-100 text-gray-400 hover:border-maroon-200 hover:text-maroon-800'
                   }`}
               >
-                {c.name}
+                All Chapters
               </button>
-            ))}
+              {clubs.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setClubFilter(c.id)}
+                  className={`px-8 py-4 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border-2 ${clubFilter === c.id
+                    ? 'bg-maroon-800 border-maroon-800 text-white shadow-xl scale-105'
+                    : 'bg-white border-gray-100 text-gray-400 hover:border-maroon-200 hover:text-maroon-800'
+                    }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -205,13 +257,13 @@ const GalleryView: React.FC<GalleryViewProps> = ({ activities, clubs }) => {
           <div className={`transition-all duration-500 flex flex-col relative overflow-hidden ${isFullscreen ? 'w-full h-full bg-black' : 'bg-white w-full h-full md:rounded-[2.5cm] shadow-[0_50px_150px_rgba(0,0,0,0.2)] border border-white'}`}>
 
             {!isFullscreen && (
-              <div className="flex items-center justify-between p-6 md:px-12 md:py-8 flex-shrink-0 z-50 bg-white">
+              <div className="flex items-center justify-between p-6 md:px-12 md:py-8 flex-shrink-0 z-50 bg-white shadow-sm">
                 <div className="flex items-center gap-8">
                   <button
                     onClick={() => setSelectedPhotoId(null)}
-                    className="text-gray-900 hover:text-maroon-800 transition-all text-2xl hover:-translate-x-1"
+                    className="w-14 h-14 bg-gray-50 hover:bg-white rounded-full flex items-center justify-center text-gray-900 border border-gray-100 hover:border-maroon-800 hover:text-maroon-800 transition-all shadow-sm hover:shadow-xl active:scale-90"
                   >
-                    <i className="fa-solid fa-arrow-left"></i>
+                    <i className="fa-solid fa-arrow-left text-xl"></i>
                   </button>
                 </div>
 
@@ -226,8 +278,8 @@ const GalleryView: React.FC<GalleryViewProps> = ({ activities, clubs }) => {
 
             <div className={`flex flex-col md:flex-row flex-grow overflow-hidden relative ${isFullscreen ? 'w-full h-full' : ''}`}>
 
-              <div className={`flex flex-col relative transition-all duration-500 ${isFullscreen ? 'w-full h-full p-0' : 'w-full md:w-[70%] h-full p-4 md:pl-12 md:pr-6 md:pb-12'}`}>
-                <div className={`relative flex-grow overflow-hidden flex items-center justify-center group ${isFullscreen ? 'bg-black rounded-0' : 'bg-gray-50 rounded-[1cm] border border-gray-100 shadow-inner'}`}>
+              <div className={`flex flex-col relative transition-all duration-500 ${isFullscreen ? 'w-full h-full p-0' : 'w-full md:w-[70%] h-full p-4 md:p-6 md:pb-8'}`}>
+                <div className={`relative flex-grow overflow-hidden flex items-center justify-center group ${isFullscreen ? 'bg-black rounded-0' : 'bg-gray-50 rounded-[1.5cm] border border-gray-100 shadow-inner'}`}>
 
                   <button
                     onClick={() => navigate('prev')}
@@ -244,38 +296,24 @@ const GalleryView: React.FC<GalleryViewProps> = ({ activities, clubs }) => {
 
                   <img
                     src={formatMediaLink(selectedPhoto.url)}
-                    className={`transition-all duration-700 ease-in-out ${isFullscreen ? 'w-full h-full object-contain scale-100' : 'max-w-full max-h-full object-contain animate-slide-up'}`}
+                    className={`transition-all duration-700 ease-in-out w-full h-full ${isFullscreen ? 'object-contain' : 'object-cover animate-slide-up'}`}
                     alt="Main Content"
                   />
 
-                  <div className="absolute bottom-2 right-4 flex flex-col gap-4 z-50">
+                  <div className="absolute bottom-6 right-6 flex flex-col gap-4 z-50">
                     <button
                       onClick={() => setIsFullscreen(!isFullscreen)}
-                      className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 ${isFullscreen ? 'bg-maroon-800 text-white' : 'bg-white text-gray-900 border border-gray-100'}`}
+                      className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 ${isFullscreen ? 'bg-maroon-800 text-white' : 'bg-white/80 backdrop-blur-md text-gray-900 border border-white'}`}
                       title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                     >
                       <i className={`fa-solid ${isFullscreen ? 'fa-minimize' : 'fa-maximize'}`}></i>
                     </button>
                   </div>
-
-                  {isFullscreen && (
-                    <div className="absolute bottom-10 left-10 flex flex-col gap-1 items-start">
-                      <span className="text-maroon-500 text-[10px] font-black uppercase tracking-[0.4em]">{selectedPhoto.clubName} Intelligence</span>
-                      <div className="flex gap-1.5">
-                        {currentClubPhotos.map((p) => (
-                          <div key={p.id} className={`h-1 rounded-full transition-all duration-500 ${p.id === selectedPhotoId ? 'w-10 bg-maroon-800' : 'w-2 bg-white/20'}`}></div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {!isFullscreen && (
-                  <div className="mt-8 flex items-center justify-between">
-                    <div className="inline-block px-8 py-3 bg-maroon-800 text-white text-[10px] font-black uppercase tracking-[0.4em] rounded-full shadow-2xl">
-                      {selectedPhoto.clubName} Intelligence
-                    </div>
-                    <div className="flex gap-1.5">
+                  <div className="mt-6 flex items-center justify-end">
+                    <div className="flex gap-1.5 px-4">
                       {currentClubPhotos.map((p) => (
                         <div key={p.id} className={`h-1.5 rounded-full transition-all duration-500 ${p.id === selectedPhotoId ? 'w-12 bg-maroon-800' : 'w-2 bg-gray-200'}`}></div>
                       ))}

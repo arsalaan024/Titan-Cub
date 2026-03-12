@@ -1,4 +1,4 @@
-import { User, Club, Activity, Achievement, CareerItem, ChatMessage, UserRole, PortalSettings, CodingModule, CodingProblem } from '../types';
+import { User, Club, Activity, Achievement, CareerItem, ChatMessage, UserRole, PortalSettings, CodingModule, CodingProblem, HomeBanner } from '../types';
 import { turso, initSchema } from './tursoClient';
 import { CODING_CHALLENGES } from '../data/coding_gauntlet';
 
@@ -481,6 +481,30 @@ export const db = {
       console.error('Failed to update portal settings:', err);
       throw err;
     }
+  },
+
+  // --- Home Banners ---
+  getHomeBanners: async (): Promise<HomeBanner[]> => {
+    const { rows } = await turso.execute('SELECT * FROM home_banners ORDER BY display_order ASC, created_at DESC');
+    return rows.map((r: any) => ({
+      id: r.id,
+      imageUrl: r.image_url,
+      title: r.title,
+      subtitle: r.subtitle,
+      link: r.link,
+      order: r.display_order
+    }));
+  },
+  addHomeBanner: async (banner: Partial<HomeBanner>) => {
+    const id = banner.id || generateId();
+    await turso.execute({
+      sql: `INSERT INTO home_banners (id, image_url, title, subtitle, link, display_order) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [id, banner.imageUrl, banner.title || '', banner.subtitle || '', banner.link || '', banner.order || 0]
+    });
+    return { ...banner, id };
+  },
+  deleteHomeBanner: async (id: string) => {
+    await turso.execute({ sql: 'DELETE FROM home_banners WHERE id=?', args: [id] });
   }
 };
 

@@ -37,6 +37,8 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({
     photos: [] as string[]
   });
 
+  const [viewingPhotos, setViewingPhotos] = useState<Activity | null>(null);
+
   const filteredActivities = useMemo(() => {
     const term = commonSearch.toLowerCase();
     return activities.filter(act => {
@@ -103,28 +105,28 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({
   const canEdit = user && [UserRoles.ADMIN, UserRoles.SUPER_ADMIN, UserRoles.CLUB_ADMIN].includes(user.role as any);
 
   return (
-    <div className="py-12 md:py-24 bg-gray-50 min-h-screen">
+    <div className="py-6 md:py-12 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 md:gap-10 mb-12 md:mb-16">
-          <div>
-            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-gray-900 uppercase leading-[0.9] md:leading-[0.8] mb-4 md:mb-6">Activity <br /><span className="text-maroon-800">Master List.</span></h2>
-            <p className="text-gray-500 text-base md:text-xl font-medium max-w-xl">Unified registry for all campus chapters. Download reports and view visual manifest evidence.</p>
-          </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div></div>
           {canEdit && (
-            <button onClick={handleOpenAdd} className="bg-maroon-800 text-white px-8 py-4 md:px-12 md:py-6 rounded-xl md:rounded-[2rem] font-black shadow-2xl uppercase tracking-widest text-[10px] md:text-xs active:scale-95 hover:bg-maroon-900 flex items-center justify-center gap-3">
+            <button onClick={handleOpenAdd} className="bg-maroon-800 text-white px-8 py-3 md:px-10 md:py-4 rounded-full font-black shadow-xl uppercase tracking-widest text-[10px] active:scale-95 hover:bg-maroon-900 flex items-center justify-center gap-3">
               <i className="fa-solid fa-plus-circle text-lg"></i> Register New
             </button>
           )}
         </div>
 
-        <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] shadow-xl border border-gray-100 mb-8 md:mb-12">
-          <input
-            type="text"
-            placeholder="Search by name, club, or date..."
-            className="w-full px-8 py-4 md:py-6 bg-gray-50 border-none rounded-xl md:rounded-[1.5rem] focus:bg-white focus:ring-4 focus:ring-maroon-800/10 transition-all outline-none font-bold text-base md:text-xl shadow-inner"
-            value={commonSearch}
-            onChange={(e) => setCommonSearch(e.target.value)}
-          />
+        <div className="bg-white p-2 md:p-2 rounded-xl md:rounded-2xl shadow-lg border border-maroon-800/10 mb-6 group transition-all hover:border-maroon-800/30">
+          <div className="relative flex items-center">
+            <i className="fa-solid fa-magnifying-glass absolute left-6 text-maroon-800/40 group-focus-within:text-maroon-800 transition-colors"></i>
+            <input
+              type="text"
+              placeholder="Search by name, club, or date..."
+              className="w-full pl-14 pr-8 py-3 md:py-4 bg-maroon-50/30 border-none rounded-lg md:rounded-xl focus:bg-white focus:ring-2 focus:ring-maroon-800 transition-all outline-none font-bold text-sm md:text-lg text-gray-800"
+              value={commonSearch}
+              onChange={(e) => setCommonSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl md:rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">
@@ -135,7 +137,8 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                   <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase">Activity</th>
                   <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase">Host Club</th>
                   <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase">Date</th>
-                  <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase text-center">Report</th>
+                  <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase">Photos</th>
+                  <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase">Report</th>
                   {canEdit && <th className="px-10 py-8 text-[10px] font-black text-gray-400 uppercase text-center">Actions</th>}
                 </tr>
               </thead>
@@ -145,6 +148,15 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                     <td className="px-10 py-6 text-gray-900">{act.name}</td>
                     <td className="px-10 py-6 text-gray-500 text-xs uppercase">{act.clubName}</td>
                     <td className="px-10 py-6 text-gray-400 tabular-nums uppercase text-xs">{act.date}</td>
+                    <td className="px-10 py-6 text-center">
+                      <button 
+                        onClick={() => setViewingPhotos(act)} 
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all ${act.photos && act.photos.length > 0 ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-50 text-gray-200 border-gray-100'}`}
+                        disabled={!act.photos || act.photos.length === 0}
+                      >
+                        <i className="fa-solid fa-images"></i>
+                      </button>
+                    </td>
                     <td className="px-10 py-6 text-center">
                       <button onClick={() => handleDownloadReport(act.reportUrl || '', act.name)} className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all ${act.reportUrl ? 'bg-[#800000] text-white shadow-lg' : 'bg-gray-50 text-gray-200 border-gray-100'}`} disabled={!act.reportUrl}>
                         <i className="fa-solid fa-file-pdf"></i>
@@ -163,6 +175,49 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Photo Viewer Modal */}
+      {viewingPhotos && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 md:p-8">
+          <div className="w-full max-w-5xl bg-white rounded-[2rem] md:rounded-[3rem] overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-8 flex items-center justify-between border-b border-gray-100">
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-gray-900">{viewingPhotos.name}</h3>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{viewingPhotos.clubName} • {viewingPhotos.date}</p>
+              </div>
+              <button 
+                onClick={() => setViewingPhotos(null)} 
+                className="w-12 h-12 bg-gray-50 hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-maroon-800 transition-all"
+              >
+                <i className="fa-solid fa-xmark text-xl"></i>
+              </button>
+            </div>
+            
+            <div className="flex-grow overflow-y-auto p-8 bg-gray-50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {viewingPhotos.photos.map((p, idx) => (
+                  <div key={idx} className="aspect-square rounded-2xl md:rounded-[1.5cm] overflow-hidden bg-white border border-white shadow-xl group">
+                    <img 
+                      src={formatMediaLink(p)} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      alt={`Activity photo ${idx + 1}`} 
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-8 bg-white border-t border-gray-100 flex justify-center">
+              <button 
+                onClick={() => navigate(`/gallery?clubId=${viewingPhotos.clubId}`)} 
+                className="bg-maroon-800 text-white px-10 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95"
+              >
+                View in Full Gallery
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-xl p-4 overflow-y-auto">

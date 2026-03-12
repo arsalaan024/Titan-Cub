@@ -173,3 +173,12 @@ export interface PortalSettings {
   theme: PortalTheme;
   storageMode: StorageMode;
 }
+
+export interface HomeBanner {
+  id: string;
+  imageUrl: string;
+  title?: string;
+  subtitle?: string;
+  link?: string;
+  order: number;
+}
