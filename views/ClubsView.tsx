@@ -116,43 +116,43 @@ const ClubsView: React.FC<ClubsViewProps> = ({ clubs, user, onAddClub, onDeleteC
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {filteredClubs.map((club) => (
             <div
               key={club.id}
               onClick={() => goToClub(club.id)}
-              className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 flex flex-col h-full relative cursor-pointer"
+              className="group bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 flex flex-col h-full relative cursor-pointer"
             >
-              <div className="relative h-64 overflow-hidden">
+              <div className="relative h-48 overflow-hidden">
                 <img src={formatMediaLink(club.bannerImage)} alt={club.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                 <div className="absolute inset-0 bg-gradient-to-t from-maroon-950/95 via-maroon-900/20 to-transparent"></div>
 
                 {isAuthorizedAdmin && (
                   <button
                     onClick={(e) => openDeleteModal(e, club)}
-                    className="absolute top-6 right-6 z-30 w-14 h-14 bg-red-600 backdrop-blur-md text-white rounded-2xl flex items-center justify-center hover:bg-red-700 transition-all border border-white/20 shadow-[0_10px_30px_rgba(220,38,38,0.4)] opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0"
+                    className="absolute top-4 right-4 z-30 w-12 h-12 bg-red-600 backdrop-blur-md text-white rounded-xl flex items-center justify-center hover:bg-red-700 transition-all border border-white/20 shadow-lg opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0"
                     title="Permanently Decommission Club"
                   >
-                    <i className="fa-solid fa-trash-can text-xl"></i>
+                    <i className="fa-solid fa-trash-can text-lg"></i>
                   </button>
                 )}
 
-                <div className="absolute bottom-8 left-8 flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-white p-2 shadow-2xl flex-shrink-0">
+                <div className="absolute bottom-6 left-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white p-1.5 shadow-2xl flex-shrink-0">
                     <img src={formatMediaLink(club.logo)} alt="Logo" className="w-full h-full object-contain" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-white font-black text-2xl tracking-tight uppercase truncate">{club.name}</h3>
-                    <p className="text-maroon-300 text-[10px] font-black uppercase tracking-widest mt-1 line-clamp-1">{club.tagline}</p>
+                    <h3 className="text-white font-black text-xl tracking-tight uppercase truncate">{club.name}</h3>
+                    <p className="text-maroon-300 text-[8px] font-black uppercase tracking-widest mt-0.5 line-clamp-1">{club.tagline}</p>
                   </div>
                 </div>
               </div>
-              <div className="p-10 flex-grow">
-                <p className="text-gray-500 font-medium leading-relaxed text-sm line-clamp-3">{club.description}</p>
+              <div className="p-6 flex-grow">
+                <p className="text-gray-500 font-medium leading-relaxed text-xs line-clamp-3">{club.description}</p>
               </div>
-              <div className="p-10 pt-0 flex justify-between items-center text-maroon-800 font-black text-[10px] uppercase tracking-[0.25em]">
-                <span className="flex items-center gap-2">Explore Chapter <i className="fa-solid fa-compass"></i></span>
-                <i className="fa-solid fa-arrow-right-long group-hover:translate-x-3 transition-transform text-lg"></i>
+              <div className="p-6 pt-0 flex justify-between items-center text-maroon-800 font-black text-[9px] uppercase tracking-[0.2em]">
+                <span className="flex items-center gap-2">Explore <i className="fa-solid fa-compass"></i></span>
+                <i className="fa-solid fa-arrow-right-long group-hover:translate-x-2 transition-transform text-base"></i>
               </div>
             </div>
           ))}
