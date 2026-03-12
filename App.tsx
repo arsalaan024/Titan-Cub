@@ -182,9 +182,9 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <div className={`min-h-screen bg-gray-50 portal-theme-${portalSettings?.theme || 'default'}`}>
-        <Navbar user={user} onLogout={handleLogout} />
+        <Navbar user={user} onLogout={handleLogout} portalSettings={portalSettings} />
 
-        <main className="flex-grow pt-16">
+        <main className="flex-grow pt-[120px] md:pt-[144px]">
           <Routes>
             <Route path="/" element={<HomeView user={user} announcements={announcements} portalSettings={portalSettings} />} />
             <Route path="/about" element={<AboutView portalSettings={portalSettings} />} />

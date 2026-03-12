@@ -172,6 +172,8 @@ export interface PortalSettings {
   id: string;
   theme: PortalTheme;
   storageMode: StorageMode;
+  leftHeaderLogo?: string;
+  rightHeaderLogo?: string;
 }
 
 export interface HomeBanner {

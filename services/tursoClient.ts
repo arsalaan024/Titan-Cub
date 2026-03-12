@@ -168,6 +168,11 @@ export async function initSchema() {
   for (const sql of statements) {
     await turso.execute(sql);
   }
+  
+  // Run alter table migrations for new columns without failing if they already exist
+  try { await turso.execute('ALTER TABLE portal_settings ADD COLUMN left_header_logo TEXT'); } catch(e) {}
+  try { await turso.execute('ALTER TABLE portal_settings ADD COLUMN right_header_logo TEXT'); } catch(e) {}
+
   console.log('✅ Turso schema initialized');
 
   // Seed sample banners if empty
@@ -176,21 +181,21 @@ export async function initSchema() {
     const sampleBanners = [
       {
         id: 'sample-1',
-        image_url: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?auto=format&fit=crop&q=80&w=1920',
+        image_url: 'https://picsum.photos/id/180/1920/1080',
         title: 'TITAN CLUB',
         subtitle: 'Commanding Excellence in Student Innovation',
         display_order: 0
       },
       {
         id: 'sample-2',
-        image_url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1920',
+        image_url: 'https://picsum.photos/id/1015/1920/1080',
         title: 'CAMPUS LIFE',
         subtitle: 'Experience the Vibrancy of Titan Academy',
         display_order: 1
       },
       {
         id: 'sample-3',
-        image_url: 'https://images.unsplash.com/photo-1544654803-b69110bb8154?auto=format&fit=crop&q=80&w=1920',
+        image_url: 'https://picsum.photos/id/1038/1920/1080',
         title: 'GLOBAL CONNECT',
         subtitle: 'Building the Future of Tech Communities',
         display_order: 2
@@ -204,5 +209,19 @@ export async function initSchema() {
       });
     }
     console.log('✅ Sample banners seeded');
+  } else {
+    // Fix any broken sample banner URLs (migration for existing data)
+    const fixes = [
+      { id: 'sample-1', url: 'https://picsum.photos/id/180/1920/1080' },
+      { id: 'sample-2', url: 'https://picsum.photos/id/1015/1920/1080' },
+      { id: 'sample-3', url: 'https://picsum.photos/id/1038/1920/1080' },
+    ];
+    for (const fix of fixes) {
+      await turso.execute({
+        sql: 'UPDATE home_banners SET image_url = ? WHERE id = ?',
+        args: [fix.url, fix.id]
+      });
+    }
+    console.log('✅ Sample banner URLs updated');
   }
 }

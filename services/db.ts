@@ -445,7 +445,9 @@ export const db = {
         return {
           id: r.id,
           theme: r.theme || 'default',
-          storageMode: (r.storage_mode as any) || 'database'
+          storageMode: (r.storage_mode as any) || 'database',
+          leftHeaderLogo: r.left_header_logo || undefined,
+          rightHeaderLogo: r.right_header_logo || undefined
         };
       }
 
@@ -475,6 +477,18 @@ export const db = {
         await turso.execute({
           sql: `INSERT INTO portal_settings (id, theme, storage_mode, updated_at) VALUES ('global', 'default', ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET storage_mode=excluded.storage_mode, updated_at=CURRENT_TIMESTAMP`,
           args: [settings.storageMode]
+        });
+      }
+      if (settings.leftHeaderLogo !== undefined) {
+        await turso.execute({
+          sql: `INSERT INTO portal_settings (id, theme, storage_mode, left_header_logo, updated_at) VALUES ('global', 'default', 'database', ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET left_header_logo=excluded.left_header_logo, updated_at=CURRENT_TIMESTAMP`,
+          args: [settings.leftHeaderLogo]
+        });
+      }
+      if (settings.rightHeaderLogo !== undefined) {
+        await turso.execute({
+          sql: `INSERT INTO portal_settings (id, theme, storage_mode, right_header_logo, updated_at) VALUES ('global', 'default', 'database', ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET right_header_logo=excluded.right_header_logo, updated_at=CURRENT_TIMESTAMP`,
+          args: [settings.rightHeaderLogo]
         });
       }
     } catch (err) {

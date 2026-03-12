@@ -42,11 +42,32 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
     }
   };
 
+  // Convert Google Drive sharing links to direct image URLs
+  const convertToDirectUrl = (url: string): string => {
+    // Match: https://drive.google.com/file/d/FILE_ID/view?...
+    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileMatch) {
+      return `https://lh3.googleusercontent.com/d/${fileMatch[1]}`;
+    }
+    // Match: https://drive.google.com/open?id=FILE_ID
+    const openMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (openMatch) {
+      return `https://lh3.googleusercontent.com/d/${openMatch[1]}`;
+    }
+    // Match: https://drive.google.com/uc?id=FILE_ID&...
+    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+    if (ucMatch) {
+      return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
+    }
+    return url; // Return as-is if not a Google Drive link
+  };
+
   const handleAddBanner = async () => {
     if (!newImage) return;
     try {
+      const directUrl = convertToDirectUrl(newImage.trim());
       await db.addHomeBanner({
-        imageUrl: newImage,
+        imageUrl: directUrl,
         title: newTitle,
         subtitle: newSubtitle,
         order: banners.length
@@ -61,12 +82,13 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
   };
 
   const handleDeleteBanner = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this banner?')) return;
     try {
       await db.deleteHomeBanner(id);
+      console.log('Banner deleted:', id);
       fetchBanners();
     } catch (err) {
-      alert('Failed to delete banner');
+      console.error('Delete failed:', err);
+      alert('Failed to delete banner: ' + (err as any)?.message);
     }
   };
 
@@ -77,7 +99,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
   );
 
   return (
-    <section className="relative h-[90vh] md:h-[95vh] overflow-hidden group">
+    <section className="relative h-[50vh] md:h-[55vh] overflow-hidden group">
       {banners.length > 0 ? (
         <>
           {banners.map((banner, index) => (
@@ -91,6 +113,13 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
                 src={banner.imageUrl}
                 className="w-full h-full object-cover"
                 alt={banner.title || 'Banner'}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  console.error('Banner image failed:', banner.imageUrl);
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.style.display = 'none';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-r from-maroon-950/80 via-maroon-950/40 to-transparent"></div>
               
@@ -137,7 +166,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
       {isAdmin && (
         <button
           onClick={() => setShowAdmin(!showAdmin)}
-          className="absolute top-24 right-8 z-50 p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-white/20 transition-all shadow-2xl"
+          className="absolute top-4 right-4 md:right-8 z-50 p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-white/20 transition-all shadow-2xl"
           title="Manage Banners"
         >
           <i className={`fa-solid ${showAdmin ? 'fa-xmark' : 'fa-images'}`}></i>
@@ -146,7 +175,8 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
 
       {/* Admin Panel */}
       {showAdmin && isAdmin && (
-        <div className="absolute top-40 right-8 z-50 w-80 bg-maroon-900/95 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-3xl animate-slide-up">
+        <div className="absolute top-20 right-4 md:right-8 z-50 w-80 max-h-[85%] overflow-y-auto bg-maroon-900/95 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-3xl animate-slide-up">
+          {/* Custom slim scrollbar styles are good, but standard scrollbar works fine natively */}
           <h3 className="text-white font-black uppercase tracking-widest text-xs mb-6 flex items-center gap-2">
             <i className="fa-solid fa-gear text-maroon-400"></i>
             Banner Management
@@ -184,14 +214,19 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
           <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-4">Current Slides</p>
             {banners.map((b) => (
-              <div key={b.id} className="flex items-center gap-3 p-2 bg-white/5 rounded-xl mb-2 group/item">
-                <img src={b.imageUrl} className="w-12 h-12 object-cover rounded-lg" />
+              <div key={b.id} className="flex items-center gap-3 p-2 bg-white/5 rounded-xl mb-2">
+                <img src={b.imageUrl} className="w-12 h-12 object-cover rounded-lg" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold text-white truncate">{b.title || 'Untitled Slide'}</p>
                 </div>
                 <button
-                  onClick={() => handleDeleteBanner(b.id)}
-                  className="p-2 text-white/20 hover:text-red-400 transition-colors"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeleteBanner(b.id);
+                  }}
+                  className="p-3 bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white rounded-lg transition-all cursor-pointer flex-shrink-0"
                 >
                   <i className="fa-solid fa-trash-can text-sm"></i>
                 </button>

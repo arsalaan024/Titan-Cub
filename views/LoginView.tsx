@@ -24,6 +24,11 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 2FA handling
+  const [needs2FA, setNeeds2FA] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [secondFactorStrategy, setSecondFactorStrategy] = useState('');
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || loading) return;
@@ -32,7 +37,25 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const result = await signIn.create({
+      // If we're in 2FA mode, attempt the second factor
+      if (needs2FA) {
+        const result = await signIn!.attemptSecondFactor({
+          strategy: secondFactorStrategy as any,
+          code: verificationCode,
+        });
+
+        if (result.status === 'complete') {
+          await setActive({ session: result.createdSessionId });
+          onLogin();
+          navigate('/');
+        } else {
+          setError(`Verification failed. Status: ${result.status}`);
+        }
+        return;
+      }
+
+      // Normal password login
+      const result = await signIn!.create({
         identifier: email.trim(),
         password: password,
         strategy: 'password',
@@ -45,7 +68,34 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         onLogin();
         navigate('/');
       } else if (result.status === 'needs_second_factor') {
-        setError("Login Blocked: Your account has Two-Factor Authentication (2FA) enabled in Clerk.");
+        // Automatically handle 2FA
+        console.log('2FA Required. Supported factors:', result.supportedSecondFactors);
+        const factors = result.supportedSecondFactors || [];
+        
+        // Find the best strategy to use
+        const phoneFactor = factors.find((f: any) => f.strategy === 'phone_code');
+        const totpFactor = factors.find((f: any) => f.strategy === 'totp');
+        const emailFactor = factors.find((f: any) => f.strategy === 'email_code');
+
+        if (phoneFactor) {
+          setSecondFactorStrategy('phone_code');
+          await signIn!.prepareSecondFactor({ strategy: 'phone_code', phoneNumberId: (phoneFactor as any).phoneNumberId });
+          setNeeds2FA(true);
+          setError('');
+        } else if (emailFactor) {
+          setSecondFactorStrategy('email_code');
+          await signIn!.prepareSecondFactor({ strategy: 'email_code' } as any);
+          setNeeds2FA(true);
+          setError('');
+        } else if (totpFactor) {
+          setSecondFactorStrategy('totp');
+          setNeeds2FA(true);
+          setError('');
+        } else {
+          setError('Two-factor authentication is required but no supported method was found. Please contact support.');
+        }
+      } else if (result.status === 'needs_first_factor') {
+        setError('Additional verification needed. Please check your email.');
       } else {
         setError(`Login incomplete (Status: ${result.status}). Check your credentials.`);
       }
@@ -70,7 +120,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         <div className="w-16 h-16 bg-[#800000] rounded-2xl flex items-center justify-center text-white font-black text-3xl mx-auto mb-6 shadow-xl">T</div>
 
         <h2 className="text-3xl font-black text-gray-900 mb-1 tracking-tighter uppercase text-center">Welcome Back</h2>
-        <p className="text-gray-400 mb-8 text-sm font-medium text-center">Sign in to your Titan account</p>
+        <p className="text-gray-400 mb-8 text-sm font-medium text-center">
+          {needs2FA ? 'Enter the verification code sent to you' : 'Sign in to your Titan account'}
+        </p>
 
         {/* Error */}
         {error && (
@@ -81,42 +133,76 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         )}
 
         <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Email Address</label>
-            <input
-              type="email"
-              className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 font-semibold outline-none focus:ring-0 focus:border-[#800000] text-gray-900 transition-all placeholder-gray-300"
-              placeholder="you@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
+          {!needs2FA ? (
+            <>
+              <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Email Address</label>
+                <input
+                  type="email"
+                  className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 font-semibold outline-none focus:ring-0 focus:border-[#800000] text-gray-900 transition-all placeholder-gray-300"
+                  placeholder="you@university.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2 px-1">
-              <label className="block text-xs font-black text-gray-500 uppercase tracking-widest">Password</label>
-            </div>
-            <div className="relative group">
+              <div>
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <label className="block text-xs font-black text-gray-500 uppercase tracking-widest">Password</label>
+                </div>
+                <div className="relative group">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 font-semibold outline-none focus:ring-0 focus:border-[#800000] text-gray-900 transition-all placeholder-gray-300 pr-14"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#800000] transition-colors"
+                  >
+                    <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">
+                {secondFactorStrategy === 'totp' ? 'Authenticator Code' : 'Verification Code'}
+              </label>
               <input
-                type={showPassword ? "text" : "password"}
-                className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 font-semibold outline-none focus:ring-0 focus:border-[#800000] text-gray-900 transition-all placeholder-gray-300 pr-14"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                type="text"
+                className="w-full bg-gray-50 border-2 border-[#800000]/20 rounded-2xl px-5 py-4 font-semibold outline-none focus:ring-0 focus:border-[#800000] text-gray-900 transition-all tracking-widest text-center text-2xl"
+                placeholder="000000"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 required
+                autoComplete="one-time-code"
+                autoFocus
               />
+              <p className="text-xs text-gray-400 font-medium mt-2 text-center">
+                {secondFactorStrategy === 'totp'
+                  ? 'Open your Authenticator app to find the code'
+                  : secondFactorStrategy === 'phone_code'
+                  ? 'Check your phone for the code'
+                  : 'Check your email for the code'}
+              </p>
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#800000] transition-colors"
+                onClick={() => { setNeeds2FA(false); setVerificationCode(''); setError(''); }}
+                className="w-full text-[#800000] font-bold text-xs uppercase tracking-widest hover:underline mt-3"
               >
-                <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                ← Back to login
               </button>
             </div>
-          </div>
+          )}
 
           <button
             type="submit"
@@ -126,9 +212,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Signing In...
+                {needs2FA ? 'Verifying...' : 'Signing In...'}
               </span>
-            ) : 'Sign In'}
+            ) : needs2FA ? 'Verify & Sign In' : 'Sign In'}
           </button>
         </form>
 

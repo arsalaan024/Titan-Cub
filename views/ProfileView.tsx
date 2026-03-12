@@ -34,6 +34,27 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     const [updatingGlobalSettings, setUpdatingGlobalSettings] = useState(false);
     const [targetStorageMode, setTargetStorageMode] = useState<StorageMode | null>(null);
     const photoInputRef = useRef<HTMLInputElement>(null);
+    const [leftLogoUrl, setLeftLogoUrl] = useState(portalSettings?.leftHeaderLogo || '');
+    const [rightLogoUrl, setRightLogoUrl] = useState(portalSettings?.rightHeaderLogo || '');
+    const [savingLogos, setSavingLogos] = useState(false);
+
+    useEffect(() => {
+        if (portalSettings) {
+             setLeftLogoUrl(portalSettings.leftHeaderLogo || '');
+             setRightLogoUrl(portalSettings.rightHeaderLogo || '');
+        }
+    }, [portalSettings]);
+
+    const handleSaveLogos = async () => {
+        setSavingLogos(true);
+        try {
+            await db.updatePortalSettings({ leftHeaderLogo: leftLogoUrl, rightHeaderLogo: rightLogoUrl });
+            onUpdateSettings();
+        } catch (err) {
+        } finally {
+            setSavingLogos(false);
+        }
+    };
 
     useEffect(() => {
         if (clerkUser?.id) {
@@ -334,6 +355,23 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+                                
+                                <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-6 md:col-span-2">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-[#800000]">College Logos</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Left Header Logo URL</label>
+                                            <input type="text" value={leftLogoUrl} onChange={(e)=>setLeftLogoUrl(e.target.value)} className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl mt-1" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Right Header Logo URL</label>
+                                            <input type="text" value={rightLogoUrl} onChange={(e)=>setRightLogoUrl(e.target.value)} className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl mt-1" />
+                                        </div>
+                                    </div>
+                                    <button onClick={handleSaveLogos} disabled={savingLogos} className="bg-[#800000] text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px]">
+                                        {savingLogos ? 'Saving...' : 'Save Logos'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
