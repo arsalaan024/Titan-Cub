@@ -40,11 +40,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
       console.log('SignIn Result:', result);
 
-      if (result.status === 'complete' || result.status === 'needs_second_factor') {
-        // If it's complete, or we're ignoring 2FA, force active session
-        await setActive({ session: result.createdSessionId || result.supportedFirstFactors?.[0]?.strategy === 'password' ? result.createdSessionId : undefined });
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
         onLogin();
         navigate('/');
+      } else if (result.status === 'needs_second_factor') {
+        setError("Login Blocked: Your account has Two-Factor Authentication (2FA) enabled in Clerk.");
       } else {
         setError(`Login incomplete (Status: ${result.status}). Check your credentials.`);
       }
