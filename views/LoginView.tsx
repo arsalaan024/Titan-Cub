@@ -136,7 +136,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           {!needs2FA ? (
             <>
               <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Email Address</label>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Email</label>
                 <input
                   type="email"
                   className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-5 py-4 font-semibold outline-none focus:ring-0 focus:border-[#800000] text-gray-900 transition-all placeholder-gray-300"
