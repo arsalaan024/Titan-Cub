@@ -162,6 +162,25 @@ export async function initSchema() {
       link TEXT,
       display_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS showcase_cards (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      subtitle TEXT,
+      description TEXT,
+      photo_url TEXT,
+      color TEXT DEFAULT '#FFB464',
+      display_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS secondary_banners (
+      id TEXT PRIMARY KEY,
+      image_url TEXT NOT NULL,
+      title TEXT,
+      subtitle TEXT,
+      link TEXT,
+      display_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 
@@ -172,6 +191,10 @@ export async function initSchema() {
   // Run alter table migrations for new columns without failing if they already exist
   try { await turso.execute('ALTER TABLE portal_settings ADD COLUMN left_header_logo TEXT'); } catch(e) {}
   try { await turso.execute('ALTER TABLE portal_settings ADD COLUMN right_header_logo TEXT'); } catch(e) {}
+  try { await turso.execute('ALTER TABLE user_profiles ADD COLUMN uid TEXT DEFAULT ""'); } catch(e) {}
+  try { await turso.execute('ALTER TABLE showcase_cards ADD COLUMN start_date TEXT DEFAULT ""'); } catch(e) {}
+  try { await turso.execute('ALTER TABLE showcase_cards ADD COLUMN end_date TEXT DEFAULT ""'); } catch(e) {}
+  try { await turso.execute('ALTER TABLE showcase_cards ADD COLUMN registration_link TEXT DEFAULT ""'); } catch(e) {}
 
   console.log('✅ Turso schema initialized');
 
@@ -223,5 +246,15 @@ export async function initSchema() {
       });
     }
     console.log('✅ Sample banner URLs updated');
+  }
+
+  // Seed sample secondary banner if empty
+  const { rows: secRows } = await turso.execute('SELECT count(*) as count FROM secondary_banners');
+  if (secRows[0] && (secRows[0] as any).count === 0) {
+    await turso.execute({
+      sql: 'INSERT INTO secondary_banners (id, image_url, title, subtitle) VALUES (?, ?, ?, ?)',
+      args: ['sec-1', 'https://images.unsplash.com/photo-1541339907198-e08756ebafe1?q=80&w=2070&auto=format&fit=crop', 'Win Your', 'Future Goals.']
+    });
+    console.log('✅ Sample secondary banner seeded');
   }
 }

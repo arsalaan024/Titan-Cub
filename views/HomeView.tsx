@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { db } from '../services/db';
 import { User, UserRoles, Announcement } from '../types';
 import HomeBanner from '../components/HomeBanner';
+import OrbitalShowcase from '../components/OrbitalShowcase';
+import SecondaryBanner from '../components/SecondaryBanner';
 
 interface HomeViewProps {
   user: User | null;
@@ -34,6 +36,11 @@ const HomeView: React.FC<HomeViewProps> = ({ user, announcements: allAnnouncemen
       {/* Hero Banner Section */}
       <HomeBanner user={user} />
 
+      {/* Interactive Orbital Showcase */}
+      <OrbitalShowcase user={user} />
+
+      {/* Secondary Banner CTA */}
+      <SecondaryBanner user={user} />
 
       {/* ANNOUNCEMENT WIDGET */}
       <div className="fixed bottom-6 right-4 sm:bottom-10 sm:right-10 z-[100] flex flex-col items-end gap-4 md:gap-6">

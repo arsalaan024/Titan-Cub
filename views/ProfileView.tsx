@@ -37,6 +37,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     const [leftLogoUrl, setLeftLogoUrl] = useState(portalSettings?.leftHeaderLogo || '');
     const [rightLogoUrl, setRightLogoUrl] = useState(portalSettings?.rightHeaderLogo || '');
     const [savingLogos, setSavingLogos] = useState(false);
+    const [uid, setUid] = useState('');
+    const [isEditingUid, setIsEditingUid] = useState(false);
 
     useEffect(() => {
         if (portalSettings) {
@@ -61,6 +63,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             db.getUserProfile(clerkUser.id).then(p => {
                 if (p) {
                     setDescription(p.bio || '');
+                    setUid(p.uid || '');
                     // If App.tsx hasn't loaded stats yet but the local fetch did, trigger a sync
                     if (!user?.gameStats && p.gameStats) {
                         onUpdateSettings();
@@ -68,13 +71,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 }
                 // Auto-sync basic info if it's the first time
                 if (!p) {
-                    handleSaveDescription(p?.bio || '');
+                    handleSaveProfile(p?.bio || '');
                 }
             });
         }
     }, [clerkUser?.id, user?.gameStats]);
 
-    const handleSaveDescription = async (text: string) => {
+    const handleSaveProfile = async (text: string, studentUid?: string) => {
         if (!clerkUser) return;
         setSavingDescription(true);
         try {
@@ -84,7 +87,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 email: clerkUser.primaryEmailAddress?.emailAddress || user?.email || '',
                 photoUrl: clerkUser.imageUrl || '',
                 bio: text,
-                role: user?.role || 'STUDENT'
+                role: user?.role || 'STUDENT',
+                uid: studentUid ?? uid
             });
 
             // Also sync memberships to Turso for discovery
@@ -95,6 +99,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             }
 
             setIsEditingDescription(false);
+            setIsEditingUid(false);
             onUpdateSettings();
         } catch (err: any) {
             console.error('Failed to save profile:', err);
@@ -214,9 +219,29 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
                         <div className="text-center md:text-left flex-1">
                             <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">{user.name}</h1>
-                            <p className="text-white/60 mt-1 font-medium">{user.email}</p>
+                            <div className="flex flex-col gap-1 mt-1">
+                                <p className="text-white/60 font-medium">{user.email}</p>
+                                {isEditingUid ? (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <input
+                                            type="text"
+                                            value={uid}
+                                            onChange={(e) => setUid(e.target.value)}
+                                            placeholder="Student UID"
+                                            className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-white/40"
+                                            autoFocus
+                                        />
+                                        <button onClick={() => handleSaveProfile(description, uid)} className="text-[10px] bg-white text-maroon-900 px-3 py-1 rounded font-black uppercase">Save</button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 group/uid">
+                                        <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">{uid || 'No UID'}</p>
+                                        <button onClick={() => setIsEditingUid(true)} className="opacity-0 group-hover/uid:opacity-100 transition-opacity text-white/40 hover:text-white"><i className="fa-solid fa-pen text-[8px]"></i></button>
+                                    </div>
+                                )}
+                            </div>
 
-                            <div className="mt-4 max-w-md bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-sm">
+                            <div className="mt-8 max-w-md bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-sm">
                                 <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3 flex items-center gap-2">
                                     <i className="fa-solid fa-id-card"></i> About Me
                                 </h3>
@@ -228,7 +253,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                                             className="w-full bg-white/10 border border-white/20 rounded-2xl p-4 text-white text-sm outline-none focus:ring-2 focus:ring-white/30 placeholder-white/30 resize-none h-32"
                                         />
                                         <div className="flex gap-2">
-                                            <button onClick={() => handleSaveDescription(description)} disabled={savingDescription} className="bg-white text-[#800000] px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">Update</button>
+                                            <button onClick={() => handleSaveProfile(description)} disabled={savingDescription} className="bg-white text-[#800000] px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">Update</button>
                                             <button onClick={() => setIsEditingDescription(false)} className="bg-white/10 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">Cancel</button>
                                         </div>
                                     </div>

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HomeBanner as HomeBannerType, User, UserRoles } from '../types';
 import { db } from '../services/db';
 import { Link } from 'react-router-dom';
+import { formatMediaLink } from '../services/mediaUtils';
 
 interface HomeBannerProps {
   user: User | null;
@@ -43,22 +44,12 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
     }
   };
 
-  const convertToDirectUrl = (url: string): string => {
-    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (fileMatch) return `https://lh3.googleusercontent.com/d/${fileMatch[1]}`;
-    const openMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-    if (openMatch) return `https://lh3.googleusercontent.com/d/${openMatch[1]}`;
-    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
-    if (ucMatch) return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
-    return url;
-  };
 
   const handleAddBanner = async () => {
     if (!newImage) return;
     try {
-      const directUrl = convertToDirectUrl(newImage.trim());
       await db.addHomeBanner({
-        imageUrl: directUrl,
+        imageUrl: newImage.trim(),
         title: newTitle,
         subtitle: newSubtitle,
         order: banners.length
@@ -95,7 +86,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
   );
 
   return (
-    <section className="relative min-h-[80vh] md:min-h-[85vh] bg-maroon-950 overflow-visible group mb-32 md:mb-48">
+    <section className="relative min-h-[80vh] md:min-h-[85vh] bg-maroon-950 overflow-visible group pb-12 md:pb-16">
       {banners.length > 0 ? (
         <>
           {banners.map((banner, index) => (
@@ -106,7 +97,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
               }`}
             >
               <img
-                src={banner.imageUrl}
+                src={formatMediaLink(banner.imageUrl)}
                 className="w-full h-full object-cover z-0"
                 alt={banner.title || 'Banner'}
                 referrerPolicy="no-referrer"
@@ -277,7 +268,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({ user }) => {
             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-4">Current Slides</p>
             {banners.map((b) => (
               <div key={b.id} className="flex items-center gap-3 p-2 bg-white/5 rounded-xl mb-2">
-                <img src={b.imageUrl} className="w-12 h-12 object-cover rounded-lg" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <img src={formatMediaLink(b.imageUrl)} className="w-12 h-12 object-cover rounded-lg" referrerPolicy="no-referrer" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold text-white truncate">{b.title || 'Untitled Slide'}</p>
                 </div>

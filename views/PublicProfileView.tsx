@@ -99,6 +99,11 @@ const PublicProfileView: React.FC<PublicProfileViewProps> = ({ user, clubs, acti
                                 <span className="bg-white/15 text-white px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-white/10">
                                     {profile.role?.replace('_', ' ')}
                                 </span>
+                                {profile.uid && (
+                                    <span className="bg-white/10 text-white/60 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-white/5">
+                                        ID: {profile.uid}
+                                    </span>
+                                )}
                             </div>
                             {profile.bio && (
                                 <p className="text-white/70 mt-4 font-medium text-sm max-w-md">{profile.bio}</p>

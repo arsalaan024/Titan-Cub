@@ -27,6 +27,7 @@ export interface User {
   status: 'active' | 'inactive';
   pendingClubRequests?: string[];
   gameStats?: UserGameStats;
+  uid?: string;
 }
 
 export interface Club {
@@ -183,4 +184,26 @@ export interface HomeBanner {
   subtitle?: string;
   link?: string;
   order: number;
+}
+
+export interface SecondaryBanner {
+  id: string;
+  imageUrl: string;
+  title?: string;
+  subtitle?: string;
+  link?: string;
+  order: number;
+}
+
+export interface ShowcaseCard {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  photoUrl?: string;
+  color: string;
+  order: number;
+  startDate?: string;  // ISO date string e.g. "2026-03-20"
+  endDate?: string;    // ISO date string e.g. "2026-03-25"
+  registrationLink?: string;
 }

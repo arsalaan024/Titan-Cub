@@ -1,4 +1,4 @@
-import { User, Club, Activity, Achievement, CareerItem, ChatMessage, UserRole, PortalSettings, CodingModule, CodingProblem, HomeBanner } from '../types';
+import { User, Club, Activity, Achievement, CareerItem, ChatMessage, UserRole, PortalSettings, CodingModule, CodingProblem, HomeBanner, SecondaryBanner } from '../types';
 import { turso, initSchema } from './tursoClient';
 import { CODING_CHALLENGES } from '../data/coding_gauntlet';
 
@@ -352,23 +352,25 @@ export const db = {
       photoUrl: r.photo_url,
       bio: r.bio || '',
       role: r.role,
+      uid: r.uid || '',
       gameStats: gameStats || undefined,
       pendingClubRequests: pendingRequests,
       clubMembership
     };
   },
-  saveUserProfile: async (profile: { clerkId: string; displayName: string; email: string; photoUrl: string; bio: string; role: string }) => {
+  saveUserProfile: async (profile: { clerkId: string; displayName: string; email: string; photoUrl: string; bio: string; role: string; uid?: string }) => {
     await turso.execute({
-      sql: `INSERT INTO user_profiles (clerk_id, display_name, email, photo_url, bio, role, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      sql: `INSERT INTO user_profiles (clerk_id, display_name, email, photo_url, bio, role, uid, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(clerk_id) DO UPDATE SET
               display_name=excluded.display_name,
               email=excluded.email,
               photo_url=excluded.photo_url,
               bio=excluded.bio,
               role=excluded.role,
+              uid=excluded.uid,
               updated_at=CURRENT_TIMESTAMP`,
-      args: [profile.clerkId, profile.displayName, profile.email, profile.photoUrl || '', profile.bio || '', profile.role || 'STUDENT']
+      args: [profile.clerkId, profile.displayName, profile.email, profile.photoUrl || '', profile.bio || '', profile.role || 'STUDENT', profile.uid || '']
     });
   },
   getAllUserProfiles: async () => {
@@ -519,8 +521,66 @@ export const db = {
   },
   deleteHomeBanner: async (id: string) => {
     await turso.execute({ sql: 'DELETE FROM home_banners WHERE id=?', args: [id] });
+  },
+
+  // --- Showcase Cards ---
+  getShowcaseCards: async () => {
+    const { rows } = await turso.execute('SELECT * FROM showcase_cards ORDER BY display_order ASC, created_at DESC');
+    return rows.map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      subtitle: r.subtitle,
+      description: r.description,
+      photoUrl: r.photo_url,
+      color: r.color || '#FFB464',
+      order: r.display_order || 0,
+      startDate: r.start_date || '',
+      endDate: r.end_date || '',
+      registrationLink: r.registration_link || ''
+    }));
+  },
+  addShowcaseCard: async (card: any) => {
+    const id = card.id || generateId();
+    await turso.execute({
+      sql: `INSERT INTO showcase_cards (id, title, subtitle, description, photo_url, color, display_order, start_date, end_date, registration_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, card.title, card.subtitle || '', card.description || '', card.photoUrl || '', card.color || '#FFB464', card.order || 0, card.startDate || '', card.endDate || '', card.registrationLink || '']
+    });
+    return { ...card, id };
+  },
+  updateShowcaseCard: async (card: any) => {
+    await turso.execute({
+      sql: `UPDATE showcase_cards SET title=?, subtitle=?, description=?, photo_url=?, color=?, display_order=?, start_date=?, end_date=?, registration_link=? WHERE id=?`,
+      args: [card.title, card.subtitle || '', card.description || '', card.photoUrl || '', card.color || '#FFB464', card.order || 0, card.startDate || '', card.endDate || '', card.registrationLink || '', card.id]
+    });
+  },
+  deleteShowcaseCard: async (id: string) => {
+    await turso.execute({ sql: 'DELETE FROM showcase_cards WHERE id=?', args: [id] });
+  },
+
+  // --- Secondary Banners ---
+  getSecondaryBanners: async (): Promise<SecondaryBanner[]> => {
+    const { rows } = await turso.execute('SELECT * FROM secondary_banners ORDER BY display_order ASC, created_at DESC');
+    return rows.map((r: any) => ({
+      id: r.id,
+      imageUrl: r.image_url,
+      title: r.title,
+      subtitle: r.subtitle,
+      link: r.link,
+      order: r.display_order
+    }));
+  },
+  addSecondaryBanner: async (banner: Partial<SecondaryBanner>) => {
+    const id = banner.id || generateId();
+    await turso.execute({
+      sql: `INSERT INTO secondary_banners (id, image_url, title, subtitle, link, display_order) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [id, banner.imageUrl, banner.title || '', banner.subtitle || '', banner.link || '', banner.order || 0]
+    });
+    return { ...banner, id };
+  },
+  deleteSecondaryBanner: async (id: string) => {
+    await turso.execute({ sql: 'DELETE FROM secondary_banners WHERE id=?', args: [id] });
   }
-};
+}
 
 // Remove old setDbToken export (no longer needed)
 export const setDbToken = (_token: string | null) => { };

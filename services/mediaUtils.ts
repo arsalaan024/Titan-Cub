@@ -16,7 +16,7 @@ export const formatMediaLink = (link: string | undefined | null): string => {
         const url = new URL(link);
 
         // --- Google Drive ---
-        if (url.hostname.includes('drive.google.com')) {
+        if (url.hostname.includes('drive.google.com') || url.hostname.includes('docs.google.com')) {
             // Standard format: /file/d/FILE_ID/view
             let fileId = url.pathname.split('/d/')[1]?.split('/')[0];
 
@@ -25,10 +25,17 @@ export const formatMediaLink = (link: string | undefined | null): string => {
                 fileId = url.searchParams.get('id') || undefined;
             }
 
+            // High Precision Regex for any form of GDrive ID in the URL
+            if (!fileId) {
+                const match = link.match(/[-\w]{25,}/);
+                if (match) fileId = match[0];
+            }
+
             if (fileId) {
                 // Using the thumbnail endpoint is much more reliable for public images 
                 // as it returns an image content-type that bypasses ORB/CORB security blocks.
-                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+                // We also strip any sz parameters and re-add for high quality
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
             }
         }
 
