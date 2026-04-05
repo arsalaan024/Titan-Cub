@@ -16,11 +16,68 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
   const [isPollOpen, setIsPollOpen] = useState(false);
   const [pollData, setPollData] = useState({ question: '', options: ['', ''] });
   const [localVotes, setLocalVotes] = useState<Record<string, number>>({});
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(messages);
+  const [messageLimit, setMessageLimit] = useState(25);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const scrollHeightBeforeRef = useRef<number>(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Restore scroll position after loading older messages
+  useEffect(() => {
+    if (scrollHeightBeforeRef.current && chatContainerRef.current) {
+      const currentScrollHeight = chatContainerRef.current.scrollHeight;
+      const heightDifference = currentScrollHeight - scrollHeightBeforeRef.current;
+      if (heightDifference > 0) {
+        chatContainerRef.current.scrollTop = heightDifference;
+      }
+      scrollHeightBeforeRef.current = 0;
+    }
+  }, [localMessages]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (localMessages.length > 0 && isInitialLoad) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      setIsInitialLoad(false);
+    }
+  }, [localMessages, isInitialLoad]);
+
+  // Self-polling for global chat
+  // Poll for announcements and set global chat messages if needed initially
+  useEffect(() => {
+    if (!user) return;
+
+    const poll = async () => {
+      try {
+        const latestMsgs = await db.getGlobalChat(messageLimit);
+        setLocalMessages(prev => {
+          if (latestMsgs.length < messageLimit) {
+            setHasMore(false);
+          }
+          if (JSON.stringify(latestMsgs) !== JSON.stringify(prev)) {
+            return latestMsgs;
+          }
+          return prev;
+        });
+      } catch (e) {
+        console.error("Polling error:", e);
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 2000);
+    return () => clearInterval(interval);
+  }, [user, messageLimit]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight } = e.currentTarget;
+    // If we're near the top and have more messages to load
+    if (scrollTop < 50 && localMessages.length >= messageLimit && hasMore) {
+      scrollHeightBeforeRef.current = scrollHeight;
+      setMessageLimit(prev => prev + 25);
+    }
+  };
 
   const formatTime = (isoString: string) => {
     try {
@@ -151,16 +208,24 @@ const CommunityChatView: React.FC<CommunityChatViewProps> = ({ user, messages, o
       )}
 
       <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-200 overflow-hidden flex flex-col flex-grow relative">
-        <div className="flex-grow p-8 overflow-y-auto space-y-6">
-          {messages.map((m) => {
+        <div 
+          ref={chatContainerRef}
+          onScroll={handleScroll}
+          className="flex-grow p-8 overflow-y-auto space-y-6 scroll-hide"
+        >
+          {localMessages.length >= messageLimit && (
+            <div className="text-center py-4">
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest animate-pulse">Retracing History...</p>
+            </div>
+          )}
+          {localMessages.map((m) => {
             const isMe = m.senderId === user.id;
             const isAuthorizedAdmin = user.role === UserRoles.SUPER_ADMIN;
 
             // Mask the name on render for non-admins, unless it's their own message
-            let displayRole = m.senderRole || UserRoles.STUDENT;
             let displayName = m.senderName;
 
-            if (!isAuthorizedAdmin && !isMe && displayRole === UserRoles.STUDENT) {
+            if (!isAuthorizedAdmin && !isMe && m.senderRole === UserRoles.STUDENT) {
               displayName = 'Anonymous Titan';
             }
 

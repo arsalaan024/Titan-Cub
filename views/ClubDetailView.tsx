@@ -38,6 +38,23 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
   const [isPollOpen, setIsPollOpen] = useState(false);
   const [pollData, setPollData] = useState({ question: '', options: ['', ''] });
   const [localVotes, setLocalVotes] = useState<Record<string, number>>({});
+  const [messageLimit, setMessageLimit] = useState(25);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const scrollHeightBeforeRef = useRef<number>(0);
+
+  // Restore scroll position after loading older messages
+  useEffect(() => {
+    if (scrollHeightBeforeRef.current && chatContainerRef.current) {
+      const currentScrollHeight = chatContainerRef.current.scrollHeight;
+      const heightDifference = currentScrollHeight - scrollHeightBeforeRef.current;
+      if (heightDifference > 0) {
+        chatContainerRef.current.scrollTop = heightDifference;
+      }
+      scrollHeightBeforeRef.current = 0;
+    }
+  }, [clubChats]);
 
   const themeColor = club?.themeColor || '#800000';
 
@@ -75,9 +92,12 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
 
   useEffect(() => {
     if (activeTab === 'chat' && clubChats.length > 0) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (isInitialLoad) {
+        chatEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        setIsInitialLoad(false);
+      }
     }
-  }, [clubChats, activeTab]);
+  }, [clubChats, activeTab, isInitialLoad]);
 
   const isClubAdmin = user?.role === UserRoles.CLUB_ADMIN || [UserRoles.ADMIN, UserRoles.SUPER_ADMIN].includes(user?.role as any);
   const isMember = user?.clubMembership?.includes(club?.id || '') || isClubAdmin;
@@ -92,14 +112,17 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
     }
   }, [clubId, activeTab, isClubAdmin]);
 
-  // Poll for club chat messages
+  // Poll for club chat messages with pagination support
   useEffect(() => {
     if (activeTab !== 'chat' || !clubId) return;
 
     const poll = async () => {
       try {
-        const latestMsgs = await db.getClubChat(clubId);
+        const latestMsgs = await db.getClubChat(clubId, messageLimit);
         setClubChats(prev => {
+          if (latestMsgs.length < messageLimit) {
+            setHasMore(false);
+          }
           if (JSON.stringify(latestMsgs) !== JSON.stringify(prev)) {
             return latestMsgs;
           }
@@ -113,7 +136,15 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
     poll(); // Initial fetch
     const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
-  }, [clubId, activeTab]);
+  }, [clubId, activeTab, messageLimit]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight } = e.currentTarget;
+    if (scrollTop < 50 && clubChats.length >= messageLimit && hasMore) {
+      scrollHeightBeforeRef.current = scrollHeight;
+      setMessageLimit(prev => prev + 25);
+    }
+  };
 
   if (!club) return <Navigate to="/clubs" />;
 
@@ -462,17 +493,21 @@ const ClubDetailView: React.FC<ClubDetailViewProps> = ({
 
                 {activeTab === 'chat' && (
                   <div className="bg-gray-50 rounded-[3.5rem] p-12 border border-gray-100 flex flex-col h-[700px]">
-                    <div className="flex-grow overflow-y-auto space-y-6 pr-4 mb-6 scroll-hide">
+                    <div 
+                      ref={chatContainerRef}
+                      onScroll={handleScroll}
+                      className="flex-grow overflow-y-auto space-y-6 pr-4 mb-6 scroll-hide"
+                    >
+                      {clubChats.length >= messageLimit && (
+                        <div className="text-center py-4">
+                          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest animate-pulse">Loading previous entries...</p>
+                        </div>
+                      )}
                       {clubChats.map(m => {
                         const isMe = m.senderId === user?.id;
                         const isAuthorizedAdmin = user?.role === UserRoles.SUPER_ADMIN;
 
-                        let displayRole = m.senderRole || UserRoles.STUDENT;
                         let displayName = m.senderName;
-
-                        if (!isAuthorizedAdmin && !isMe && displayRole === UserRoles.STUDENT) {
-                          displayName = 'Anonymous Titan';
-                        }
 
                         return (
                           <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>

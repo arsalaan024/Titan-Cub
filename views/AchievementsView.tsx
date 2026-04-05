@@ -63,6 +63,7 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
   const [editingAch, setEditingAch] = useState<Achievement | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
 
   const [formData, setFormData] = useState<Partial<Achievement>>({
@@ -137,12 +138,14 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
       onRefreshPosts();
       setShowPostModal(false);
       setPostData({ topic: '', domain: '', rank: '', description: '', photos: [], videoUrl: '' });
-    } catch (err) {
-      alert("Failed to sync victory log.");
+    } catch (err: any) {
+      console.error("Victory sync failed:", err);
+      alert("Failed to sync victory log: " + (err?.message || "Check database connection"));
     }
   };
 
-  const handleOfficialSubmit = () => {
+  const handleOfficialSubmit = async () => {
+    console.log("handleOfficialSubmit triggered", formData);
     if (!formData.participantName || !formData.activityId || !formData.achievement || !formData.certificateUrl) {
       alert("Official Registry Error: Honoree, Activity, Achievement Rank and Proof are required.");
       return;
@@ -158,20 +161,22 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
       userId: formData.userId
     };
 
-    if (editingAch) {
-      db.updateAchievement({ ...achData, id: editingAch.id }).then(() => {
-        onRefreshPosts();
-        setShowModal(false);
+    try {
+      if (editingAch) {
+        console.log("Updating achievement:", editingAch.id);
+        await db.updateAchievement({ ...achData, id: editingAch.id });
         setEditingAch(null);
-      });
-    } else {
-      db.addAchievement(achData).then(() => {
-        onRefreshPosts();
-        setShowModal(false);
-      });
+      } else {
+        console.log("Adding new achievement");
+        await db.addAchievement(achData);
+      }
+      setShowModal(false);
+      onRefreshPosts();
+      setFormData({ participantName: '', activityId: '', activityName: '', achievement: '', certificateUrl: '', userId: '' });
+    } catch (err: any) {
+      console.error("Critical Registry Sync Error:", err);
+      alert("Database Sync Failed: " + (err?.message || "Check console"));
     }
-
-    setFormData({ participantName: '', activityId: '', activityName: '', achievement: '', certificateUrl: '', userId: '' });
   };
 
   const handleOfficialEdit = (e: React.MouseEvent, ach: Achievement) => {
@@ -252,7 +257,26 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
                     {canManage && (
                       <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                         <button onClick={(e) => handleOfficialEdit(e, ach)} className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-all"><i className="fa-solid fa-pen"></i></button>
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm('Purge record?')) onDelete(ach.id); }} className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-red-600 hover:bg-red-600 hover:text-white transition-all"><i className="fa-solid fa-trash"></i></button>
+                        <button 
+                          className={`min-w-10 h-10 px-3 rounded-xl shadow-lg flex items-center justify-center transition-all cursor-pointer z-50 font-black text-[9px] uppercase tracking-widest ${confirmingDeleteId === ach.id ? 'bg-red-600 text-white' : 'bg-white text-red-600 hover:bg-red-600 hover:text-white'}`}
+                          onMouseLeave={() => setConfirmingDeleteId(null)}
+                          onClick={(e) => { 
+                            e.preventDefault();
+                            e.stopPropagation(); 
+                            if (confirmingDeleteId === ach.id) {
+                              console.log("Final delete confirm for ID:", ach.id);
+                              onDelete(ach.id);
+                              setConfirmingDeleteId(null);
+                            } else {
+                              console.log("Delete prime triggered for ID:", ach.id);
+                              setConfirmingDeleteId(ach.id);
+                              // Auto-reset after 3 seconds if not confirmed
+                              setTimeout(() => setConfirmingDeleteId(prev => prev === ach.id ? null : prev), 3000);
+                            }
+                          }} 
+                        >
+                          {confirmingDeleteId === ach.id ? 'Confirm?' : <i className="fa-solid fa-trash pointer-events-none"></i>}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -315,31 +339,56 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
 
       {/* Official Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 overflow-y-auto">
-          <div className="bg-white rounded-[3rem] w-full max-w-2xl p-12 shadow-2xl relative my-10 border border-gray-100">
-            <button onClick={() => setShowModal(false)} className="absolute top-10 right-10 text-gray-300 hover:text-[#800000] transition-all"><i className="fa-solid fa-circle-xmark text-5xl"></i></button>
-            <h3 className="text-3xl font-black uppercase text-gray-900 mb-10 tracking-tight">Record <span className="text-[#800000]">Honor.</span></h3>
+        <div className="fixed inset-0 z-[2000] flex items-start justify-center bg-black/80 backdrop-blur-xl p-4 overflow-y-auto pb-20">
+          <div className="bg-white rounded-[2rem] w-full max-w-xl p-8 md:p-10 shadow-2xl relative mt-10 mb-10 border border-gray-100">
+            <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 text-gray-300 hover:text-[#800000] transition-all"><i className="fa-solid fa-circle-xmark text-4xl"></i></button>
+            <h3 className="text-2xl font-black uppercase text-gray-900 mb-8 tracking-tight">Record <span className="text-[#800000]">Honor.</span></h3>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-gray-400 px-2 tracking-widest">Select Honoree</label>
-                <select value={formData.userId} onChange={(e) => { const sid = e.target.value; const student = allStudents.find(s => s.id === sid); setFormData({ ...formData, userId: sid, participantName: student ? student.name : formData.participantName }); }} className="w-full bg-gray-50 rounded-2xl p-6 font-black border-none shadow-inner outline-none">
-                  <option value="">Guest (Unlinked)</option>
-                  {allStudents.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-gray-400 px-2 tracking-widest">Select Student</label>
+                  <select 
+                    value={formData.userId} 
+                    onChange={(e) => { 
+                      const sid = e.target.value; 
+                      const student = allStudents.find(s => s.id === sid); 
+                      setFormData({ 
+                        ...formData, 
+                        userId: sid, 
+                        participantName: student ? student.name : (sid === "" ? "" : formData.participantName) 
+                      }); 
+                    }} 
+                    className="w-full bg-gray-50 rounded-xl p-4 font-bold border-none shadow-inner outline-none text-sm"
+                  >
+                    <option value="">External / Guest</option>
+                    {allStudents.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-gray-400 px-2 tracking-widest">Honoree Name</label>
+                  <input 
+                    type="text" 
+                    value={formData.participantName} 
+                    onChange={(e) => setFormData({ ...formData, participantName: e.target.value })} 
+                    className="w-full bg-gray-50 rounded-xl p-4 font-bold border-none shadow-inner outline-none text-sm" 
+                    placeholder="Enter full name" 
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-gray-400 px-2 tracking-widest">Host Activity</label>
-                <select value={formData.activityId} onChange={(e) => setFormData({ ...formData, activityId: e.target.value })} className="w-full bg-gray-50 rounded-2xl p-6 font-black border-none shadow-inner outline-none">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-gray-400 px-2 tracking-widest">Host Activity</label>
+                <select value={formData.activityId} onChange={(e) => setFormData({ ...formData, activityId: e.target.value })} className="w-full bg-gray-50 rounded-xl p-4 font-bold border-none shadow-inner outline-none text-sm">
                   <option value="">Select Registry Activity</option>
                   {activities.map(act => <option key={act.id} value={act.id}>{act.name} ({act.clubName})</option>)}
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-gray-400 px-2 tracking-widest">Achievement Rank</label>
-                <input type="text" value={formData.achievement} onChange={(e) => setFormData({ ...formData, achievement: e.target.value })} className="w-full bg-gray-50 rounded-2xl p-6 font-bold shadow-inner outline-none" placeholder="e.g. Winner, Top Scout" />
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-gray-400 px-2 tracking-widest">Achievement Rank</label>
+                <input type="text" value={formData.achievement} onChange={(e) => setFormData({ ...formData, achievement: e.target.value })} className="w-full bg-gray-50 rounded-xl p-4 font-bold shadow-inner outline-none text-sm" placeholder="e.g. Winner, Top Scout" />
               </div>
 
               <MediaInput
@@ -351,9 +400,9 @@ const AchievementsView: React.FC<AchievementsViewProps> = ({
               />
             </div>
 
-            <div className="flex gap-4 mt-12">
-              <button onClick={() => setShowModal(false)} className="flex-grow bg-gray-100 py-6 rounded-2xl font-black uppercase text-[10px] text-gray-400">Abort</button>
-              <button onClick={handleOfficialSubmit} className="flex-grow bg-[#800000] text-white py-6 rounded-2xl font-black uppercase text-[10px] shadow-2xl">Publish</button>
+            <div className="flex gap-4 mt-10">
+              <button onClick={() => setShowModal(false)} className="flex-grow bg-gray-100 py-4 rounded-xl font-black uppercase text-[9px] text-gray-400">Abort</button>
+              <button onClick={handleOfficialSubmit} className="flex-grow bg-[#800000] text-white py-4 rounded-xl font-black uppercase text-[9px] shadow-2xl">Publish Record</button>
             </div>
           </div>
         </div>

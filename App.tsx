@@ -38,7 +38,6 @@ const App: React.FC = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [careerItems, setCareerItems] = useState<CareerItem[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [studentPosts, setStudentPosts] = useState<AchievementPost[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [portalSettings, setPortalSettings] = useState<PortalSettings | null>(null);
@@ -124,12 +123,11 @@ const App: React.FC = () => {
 
   const fetchAdditionalData = async () => {
     try {
-      const [a, t, ach, car, msg, sp, u] = await Promise.all([
+      const [a, t, ach, car, sp, u] = await Promise.all([
         db.getActivities(),
         db.getTeamMembers(),
         db.getAchievements(),
         db.getCareer(),
-        db.getGlobalChat(),
         db.getStudentPosts(),
         db.getUsers()
       ]);
@@ -137,7 +135,6 @@ const App: React.FC = () => {
       setTeamMembers(t || []);
       setAchievements(ach || []);
       setCareerItems(car || []);
-      setMessages(msg || []);
       setStudentPosts(sp || []);
       setAllUsers(u || []);
 
@@ -149,23 +146,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
-
-    const poll = async () => {
-      try {
-        const latestMsgs = await db.getGlobalChat();
-        setMessages(prev => {
-          if (JSON.stringify(latestMsgs) !== JSON.stringify(prev)) {
-            return latestMsgs;
-          }
-          return prev;
-        });
-      } catch (e) {
-        console.error("Polling error:", e);
-      }
-    };
-
-    const interval = setInterval(poll, 2000);
-    return () => clearInterval(interval);
+    fetchInitialData();
   }, [user]);
 
   if (loading) {
@@ -198,7 +179,14 @@ const App: React.FC = () => {
                 portalSettings={portalSettings}
               />
             } />
-            <Route path="/clubs" element={<ClubsView clubs={clubs} user={user} onAddClub={async (newClub) => { try { await db.addClub(newClub); fetchInitialData(); } catch (e: any) { alert('Failed to save club: ' + (e?.message || e)); } }} onDeleteClub={(id) => { db.deleteClub(id).then(fetchInitialData); }} portalSettings={portalSettings} />} />
+            <Route path="/clubs" element={<ClubsView clubs={clubs} user={user} onAddClub={async (newClub) => { try { await db.addClub(newClub); fetchInitialData(); } catch (e: any) { alert('Failed to save club: ' + (e?.message || e)); } }} onDeleteClub={(id) => { 
+              db.deleteClub(id)
+                .then(fetchInitialData)
+                .catch(err => {
+                  console.error("Club delete FAILED", err);
+                  alert("Delete Failed: " + (err?.message || "Verify your admin permissions"));
+                });
+            }} portalSettings={portalSettings} />} />
             <Route path="/clubs/:clubId" element={
               <ClubDetailView
                 user={user}
@@ -217,7 +205,14 @@ const App: React.FC = () => {
                 clubs={clubs}
                 onAdd={(act) => { db.addActivity(act).then(fetchInitialData); }}
                 onUpdate={(act) => { db.updateActivity(act).then(fetchInitialData); }}
-                onDelete={(id) => { db.deleteActivity(id).then(fetchInitialData); }}
+                onDelete={(id) => { 
+                  db.deleteActivity(id)
+                    .then(fetchInitialData)
+                    .catch(err => {
+                      console.error("Activity delete FAILED", err);
+                      alert("Delete Failed: " + (err?.message || "Verify your admin permissions"));
+                    });
+                }}
                 portalSettings={portalSettings}
               />
             } />
@@ -232,7 +227,16 @@ const App: React.FC = () => {
                 onAdd={(ach) => { db.addAchievement(ach).then(fetchInitialData); }}
                 onUpdate={(ach) => { db.updateAchievement(ach).then(fetchInitialData); }}
                 onDelete={(id) => {
-                  db.deleteAchievement(id).then(fetchInitialData);
+                  console.log("App: onDelete called for ID:", id);
+                  db.deleteAchievement(id)
+                    .then(() => {
+                      console.log("App: Achievement deleted successfully");
+                      fetchInitialData();
+                    })
+                    .catch(err => {
+                      console.error("App: Achievement delete FAILED", err);
+                      alert("Delete Failed: " + (err?.message || "Check your network connection"));
+                    });
                 }}
                 onRefreshPosts={fetchInitialData}
                 portalSettings={portalSettings}
@@ -243,12 +247,23 @@ const App: React.FC = () => {
                 user={user}
                 items={careerItems}
                 onAdd={(item) => { db.addCareer(item).then(fetchInitialData); }}
-                onDelete={(id) => { db.deleteCareer(id).then(fetchInitialData); }}
+                onDelete={(id) => {
+                  console.log("App: onDelete(career) called for ID:", id);
+                  db.deleteCareer(id)
+                    .then(() => {
+                      console.log("App: Career item deleted successfully");
+                      fetchInitialData();
+                    })
+                    .catch(err => {
+                      console.error("App: Career item delete FAILED", err);
+                      alert("Delete Failed: " + (err?.message || "Check your network connection"));
+                    });
+                }}
                 portalSettings={portalSettings}
               />
             } />
             <Route path="/games" element={<GamesView user={user} onSync={fetchInitialData} />} />
-            <Route path="/community-chat" element={<CommunityChatView user={user} messages={messages} onSendMessage={(m) => { db.addGlobalChat(m).then(fetchInitialData); }} />} />
+            <Route path="/community-chat" element={<CommunityChatView user={user} messages={[]} onSendMessage={(m) => { db.addGlobalChat(m); }} />} />
             <Route path="/login" element={<LoginView onLogin={fetchInitialData} />} />
             <Route path="/register" element={<RegisterView />} />
             <Route path="/profile" element={<ProfileView user={user} clubs={clubs} activities={activities} achievements={achievements} posts={studentPosts} onLogout={handleLogout} portalSettings={portalSettings} onUpdateSettings={fetchInitialData} />} />

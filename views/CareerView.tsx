@@ -15,6 +15,7 @@ const CareerView: React.FC<CareerViewProps> = ({ items, user, onAdd, onDelete, p
   const [placementSubTab, setPlacementSubTab] = useState<'opportunities' | 'records'>('opportunities');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CareerItem | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<CareerItem>>({
     title: '',
@@ -188,7 +189,23 @@ const CareerView: React.FC<CareerViewProps> = ({ items, user, onAdd, onDelete, p
                       </div>
                     </div>
                     <p className="text-gray-500 text-sm font-medium leading-relaxed italic line-clamp-2">"{item.quote}"</p>
-                    {canEdit && <button onClick={(e) => { e.stopPropagation(); if (confirm('Purge?')) onDelete(item.id); }} className="absolute top-8 left-8 w-10 h-10 bg-red-600 text-white rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><i className="fa-solid fa-trash"></i></button>}
+                    {canEdit && (
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (confirmingDeleteId === item.id) {
+                            onDelete(item.id);
+                            setConfirmingDeleteId(null);
+                          } else {
+                            setConfirmingDeleteId(item.id);
+                          }
+                        }} 
+                        onMouseLeave={() => setConfirmingDeleteId(null)}
+                        className={`absolute top-8 left-8 min-w-10 h-10 px-3 rounded-xl flex items-center justify-center transition-all z-50 font-black text-[9px] uppercase tracking-widest ${confirmingDeleteId === item.id ? 'bg-red-600 text-white' : 'bg-red-600 text-white opacity-0 group-hover:opacity-100'}`}
+                      >
+                        {confirmingDeleteId === item.id ? 'Confirm?' : <i className="fa-solid fa-trash"></i>}
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -205,7 +222,23 @@ const CareerView: React.FC<CareerViewProps> = ({ items, user, onAdd, onDelete, p
                     <span className="text-gray-300 font-black text-[10px] uppercase tracking-widest">{item.date}</span>
                     <span className="text-[#800000] font-black text-[10px] uppercase tracking-widest group-hover:translate-x-2 transition-transform">Details <i className="fa-solid fa-arrow-right ml-2"></i></span>
                   </div>
-                  {canEdit && <button onClick={(e) => { e.stopPropagation(); if (confirm('Purge?')) onDelete(item.id); }} className="absolute top-8 right-8 w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center shadow-sm"><i className="fa-solid fa-trash"></i></button>}
+                  {canEdit && (
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (confirmingDeleteId === item.id) {
+                          onDelete(item.id);
+                          setConfirmingDeleteId(null);
+                        } else {
+                          setConfirmingDeleteId(item.id);
+                        }
+                      }} 
+                      onMouseLeave={() => setConfirmingDeleteId(null)}
+                      className={`absolute top-8 right-8 min-w-10 h-10 px-3 rounded-xl flex items-center justify-center shadow-sm transition-all z-50 font-black text-[9px] uppercase tracking-widest ${confirmingDeleteId === item.id ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600'}`}
+                    >
+                      {confirmingDeleteId === item.id ? 'Confirm?' : <i className="fa-solid fa-trash"></i>}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
